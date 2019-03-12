@@ -1,6 +1,0 @@
-/scratch/lijingz/MasterThesis/OF_DIS/build/CMakeFiles/edit_cache.dir
-/scratch/lijingz/MasterThesis/OF_DIS/build/CMakeFiles/run_OF_RGB.dir
-/scratch/lijingz/MasterThesis/OF_DIS/build/CMakeFiles/run_DE_INT.dir
-/scratch/lijingz/MasterThesis/OF_DIS/build/CMakeFiles/rebuild_cache.dir
-/scratch/lijingz/MasterThesis/OF_DIS/build/CMakeFiles/run_OF_INT.dir
-/scratch/lijingz/MasterThesis/OF_DIS/build/CMakeFiles/run_DE_RGB.dir
