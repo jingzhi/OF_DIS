@@ -26,12 +26,12 @@ void image_warp(color_image_t *dst, image_t *mask, const color_image_t *src, con
     {
         for(i=0 ; i<src->width ; i++,offset++)
         {
-	        xx = i+wx->c1[offset];
-	        yy = j+wy->c1[offset];
-	        x = floor(xx);
-	        y = floor(yy);
-	        dx = xx-x;
-	        dy = yy-y;
+	        xx = i+wx->c1[offset];//float current x +flow = new x position
+	        yy = j+wy->c1[offset];//float new y position
+	        x = floor(xx);//integer new x
+	        y = floor(yy);//integer new y
+	        dx = xx-x;//rounding error x
+	        dy = yy-y;//rounding error y
 	        mask->c1[offset] = (xx>=0 && xx<=src->width-1 && yy>=0 && yy<=src->height-1);
 	        x1 = MINMAX_TA(x,src->width);
 	        x2 = MINMAX_TA(x+1,src->width);

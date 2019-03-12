@@ -1,7 +1,7 @@
 
-// #include <opencv2/core/core.hpp> // needed for verbosity >= 3, DISVISUAL
-// #include <opencv2/highgui/highgui.hpp> // needed for verbosity >= 3, DISVISUAL
-// #include <opencv2/imgproc/imgproc.hpp> // needed for verbosity >= 3, DISVISUAL
+#include <opencv2/core/core.hpp> // needed for verbosity >= 3, DISVISUAL
+#include <opencv2/highgui/highgui.hpp> // needed for verbosity >= 3, DISVISUAL
+#include <opencv2/imgproc/imgproc.hpp> // needed for verbosity >= 3, DISVISUAL
 
 #include <iostream>
 #include <string>
@@ -15,6 +15,7 @@
 #include <Eigen/Dense>
 
 #include <stdio.h>  
+#include<cstdlib>
 
 #include "patch.h"
 #include "patchgrid.h"
@@ -23,6 +24,7 @@
 using std::cout;
 using std::endl;
 using std::vector;
+using namespace cv; 
 
 
 namespace OFC
@@ -46,8 +48,11 @@ namespace OFC
   const int offseth = floor((cpt->height - (noph-1)*steps)/2);
 
   nopatches = nopw*noph;
+  //std::vector<Eigen::Vector2f> pt_ref; // Midpoints for reference patches
   pt_ref.resize(nopatches);
+  //std::vector<Eigen::Vector2f> p_init; // starting parameters for query patches
   p_init.resize(nopatches);
+  //std::vector<OFC::PatClass*> pat; // Patch Objects
   pat.reserve(nopatches);
   
   im_ao_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
@@ -110,7 +115,7 @@ void PatGridClass::InitializeGrid(const float * im_ao_in, const float * im_ao_dx
   for (int i = 0; i < nopatches; ++i)
   {
     pat[i]->InitializePatch(im_ao_eg, im_ao_dx_eg, im_ao_dy_eg, pt_ref[i]);
-    p_init[i].setZero();    
+    p_init[i].setZero();    //set starting param of query patch to be zero
   }
 
 }
@@ -213,10 +218,14 @@ void PatGridClass::InitializeFromCoarserOF(const float * flow_prev)
 void PatGridClass::AggregateFlowDense(float *flowout) const
 {
   float* we = new float[cpt->width * cpt->height];
-  
+  int array_size=cpt->width * cpt->height;
+  //vector<Point>* all_flow = new vector<Point> [array_size];
+  vector<Point2f>* all_flow = new vector<Point2f> [array_size];
+  float* point_conflict_flag = new float[cpt->width * cpt->height];
+
   memset(flowout, 0, sizeof(float) * (op->nop * cpt->width * cpt->height) );
   memset(we,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  
+  memset(point_conflict_flag,      0, sizeof(float) * (          cpt->width * cpt->height) );
   #ifdef USE_PARALLEL_ON_FLOWAGGR // Using this enables OpenMP on flow aggregation. This can lead to race conditions. Experimentally we found that the result degrades only marginally. However, for our experiments we did not enable this.
     #pragma omp parallel for schedule(static)  
   #endif
@@ -234,9 +243,9 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
       #endif
       
       const float * pweight = pat[ip]->GetpWeightPtr(); // use image error as weight
-      
       int lb = -op->p_samp_s/2;
       int ub = op->p_samp_s/2-1;
+      float patch_homo_weight=std::sqrt(pat[ip]->GetpVar());
       
       for (int y = lb; y <= ub; ++y)
       {   
@@ -250,18 +259,24 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
   
             int i = yt*cpt->width + xt;
               
+            //****float minerrval = 2.0f;       // 1/max(this, error) for pixel averaging weight
             #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)  // single channel/gradient image 
             float absw = 1.0f /  (float)(std::max(op->minerrval  ,*pweight));
             #else  // RGB image
             float absw = (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                   absw+= (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                   absw+= (float)(std::max(op->minerrval  ,*pweight));
+            //absw = 1.0f / (absw + patch_homo_weight);
             absw = 1.0f / absw;
             #endif
               
             flnew = (*fl) * absw;
             we[i] += absw;
-
+	    if((*fl)[0]!=0 && (*fl)[1]!=0){
+		    //cout<<"fl[0]"<<fl[0]<<endl;
+		    //cout<<"fl[1]"<<fl[1]<<endl;
+                all_flow[i].push_back(Point2f((*fl)[0],(*fl)[1]));
+	    }
             #if (SELECTMODE==1)
             flowout[2*i]   += flnew[0];
             flowout[2*i+1] += flnew[1];
@@ -272,7 +287,82 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
         }
       }
     }
-  } 
+  }
+    if(false){//cpt->width == 1024){
+	    float conflict_cnt=0;
+    for (int i =0;i<cpt->width;i++){
+	    for(int j =0;j<cpt->height;j++){
+	        int index=j*cpt->width+i;
+		//cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+		//
+                Size sz;
+		sz.height=all_flow[index].size();
+		sz.width=1;
+		Mat all_u(sz,CV_32FC1);
+	        Mat all_v(sz,CV_32FC1); 
+		for(unsigned f=0;f<all_flow[index].size();f++){
+			//cout<<"\t"<<all_flow[index][f]<<endl;
+			all_u.at<float>(f,0)=all_flow[index][f].x;
+			all_v.at<float>(f,0)=all_flow[index][f].y;
+		}
+		double min_u, max_u, min_v, max_v;
+		Point min_u_loc,max_u_loc,min_v_loc,max_v_loc;
+		minMaxLoc(all_u,&min_u,&max_u,&min_u_loc,&max_u_loc);
+		minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
+		vector<Mat> merge_vec={all_u,all_v};
+	        Mat merged_flow;
+		merge(merge_vec,merged_flow);
+		//cout<<"u:"<<all_u<<endl;
+		//cout<<"v:"<<all_v<<endl;
+		//cout<<"merged = "<<endl<<endl<<merged_flow<<endl;
+		Mat hist;
+	        double mode;
+		Point mode_loc;
+		//int histSize[]={(int)max_u-(int)min_u+1,(int)max_v-(int)min_v+1};
+		//float u_range[]={(float)min_u,(float)max_u+1};
+		//float v_range[]={(float)min_v,(float)max_v+1};
+		int histSize[]={320,320};
+		float u_range[]={floor(min_u),ceil(max_u)};
+		float v_range[]={floor(min_v),ceil(max_v)};
+		const float* histRange[]={u_range, v_range};
+		int channels[]={0,1};
+                //calcHist(&merged_flow,1,channels,Mat(),hist,2,histSize,histRange,true,false);
+		//minMaxLoc(hist,0,&mode,0,&mode_loc);
+
+		float mode_u, mode_v;
+		Scalar mean_u, mean_v;
+		mode_u=((u_range[1]-u_range[0])/320)*mode_loc.y+u_range[0];
+		mode_v=((v_range[1]-v_range[0])/320)*mode_loc.x+v_range[0];
+		mean_u=mean(all_u);
+		mean_v=mean(all_v);
+		//cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
+		//cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+		//cout<<"hist = "<<endl<<endl<<hist<<endl;
+		//cout<<"mode:"<<mode<<"; location:"<<mode_loc<<endl;
+
+		if((max_u-min_u > 8 && (max_u-mean_u.val[0]>3 || mean_u.val[0]-min_u>3)) || (max_v-min_v >8 && (max_v-mean_v.val[0]>3 || mean_v.val[0]-min_v>3))){
+                    point_conflict_flag[index]=1;   
+		    conflict_cnt+=1;
+		    //cout<<"Conflict at location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+		    //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
+		    //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+
+		    for(unsigned f=0;f<all_flow[index].size();f++){
+		    	//cout<<"\t"<<all_flow[index][f]<<endl;
+		    }
+                    flowout[2*index]   = rand()/RAND_MAX;
+                    flowout[2*index+1] = rand()/RAND_MAX;
+		}
+                //cout<<"org u"<<flowout[2*index]<<",org v:"<<flowout[2*index+1]<<endl;
+		//cout<<"mode u:"<<mode_u<<", mode v:"<<mode_v<<endl;
+		//cout<<"mean u:"<<mode_u<<", mean v:"<<mode_v<<endl;
+                //flowout[2*index]   = (float) mean_u.val[0];
+                //flowout[2*index+1] = (float) mean_v.val[0];
+	    }
+    }
+    //cout<<"no. of conflicting px: "<<conflict_cnt<<", "<<conflict_cnt/(cpt->width*cpt->height)<<" of total px."<<endl;
+    }
+   
   
   // if complementary (forward-backward merging) is given, integrate negative backward flow as well
   if (cg)
@@ -315,6 +405,7 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
 
           int lb = -op->p_samp_s/2;
           int ub = op->p_samp_s/2-1;
+          float patch_homo_weight=std::sqrt(pat[ip]->GetpVar());
 
           
           for (int y = lb; y <= ub; ++y)
@@ -333,6 +424,7 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
                 float absw = (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                       absw+= (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                       absw+= (float)(std::max(op->minerrval  ,*pweight));
+                //absw = 1.0f / (absw + patch_homo_weight);
                 absw = 1.0f / absw;
                 #endif
               

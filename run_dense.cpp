@@ -9,9 +9,39 @@
     
 #include "oflow.h"
 
+//===============
+#include <sstream>
 
 using namespace std;
+using namespace cv;
 
+// Display functions for visualisation
+/// Global Variables
+int DELAY_CAPTION = 1000;
+int DELAY_IMGSHOW = 100;
+char window_name[] = "Test Demo";
+int display_caption(cv::Mat dst, char* caption )
+ {
+   Mat tmp=dst.clone();
+   tmp.convertTo(tmp, CV_8U);
+   putText( tmp, caption,
+            Point( dst.cols/4, dst.rows/2),//bottom left corners of the text string in image
+            CV_FONT_HERSHEY_COMPLEX, 1, Scalar(255, 255, 255) );
+   imshow( window_name, tmp );
+   int c = cv::waitKey( DELAY_CAPTION );
+   if( c >= 0 ) { return -1; }
+   return 0;
+ }
+
+ int display_dst(cv::Mat dst)
+ {
+   Mat tmp=dst.clone();
+   tmp.convertTo(tmp, CV_8U);
+   int c = cv::waitKey (DELAY_IMGSHOW);
+   if( c >= 0 ) { return -1; }
+   return 0;
+ }
+//
 // Save a Depth/OF/SF as .flo file
 void SaveFlowFile(cv::Mat& img, const char* filename)
 {
@@ -137,6 +167,10 @@ void ConstructImgPyramide(const cv::Mat & img_ao_fmat, cv::Mat * img_ao_fmat_pyr
         img_ao_fmat_pyr[i] = img_ao_fmat.clone();
         #elif (SELECTCHANNEL==2)   // use gradient magnitude image as input
         cv::Mat dx,dy,dx2,dy2,dmag;
+        //cv::GaussianBlur( img_ao_fmat, dx, Size(3,3),0,0 );
+        //cv::GaussianBlur( img_ao_fmat, dy, Size(3,3),0,0 );
+        //cv::Sobel( dx, dx, CV_32F, 1, 0, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
+        //cv::Sobel( dy, dy, CV_32F, 0, 1, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         cv::Sobel( img_ao_fmat, dx, CV_32F, 1, 0, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         cv::Sobel( img_ao_fmat, dy, CV_32F, 0, 1, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         dx2 = dx.mul(dx);
@@ -146,13 +180,20 @@ void ConstructImgPyramide(const cv::Mat & img_ao_fmat, cv::Mat * img_ao_fmat_pyr
         img_ao_fmat_pyr[i] = dmag.clone();
         #endif
       }
-      else
+      else{
+        //cv::GaussianBlur(img_ao_fmat_pyr[i-1],img_ao_fmat_pyr[i], cv::Size(5,5),0,0 );
+        //cv::resize(img_ao_fmat_pyr[i], img_ao_fmat_pyr[i], cv::Size(), .5, .5, cv::INTER_LINEAR);
         cv::resize(img_ao_fmat_pyr[i-1], img_ao_fmat_pyr[i], cv::Size(), .5, .5, cv::INTER_LINEAR);
-	      
+      }	      
+
       img_ao_fmat_pyr[i].convertTo(img_ao_fmat_pyr[i], rpyrtype);
 	
       if ( getgrad ) 
       {
+        //cv::GaussianBlur( img_ao_fmat_pyr[i], img_ao_dx_fmat_pyr[i], cv::Size(3,3),0,0 );
+        //cv::GaussianBlur( img_ao_fmat_pyr[i], img_ao_dy_fmat_pyr[i], cv::Size(3,3),0,0 );
+        //cv::Sobel( img_ao_dx_fmat_pyr[i], img_ao_dx_fmat_pyr[i], CV_32F, 1, 0, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
+        //cv::Sobel( img_ao_dy_fmat_pyr[i], img_ao_dy_fmat_pyr[i], CV_32F, 0, 1, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         cv::Sobel( img_ao_fmat_pyr[i], img_ao_dx_fmat_pyr[i], CV_32F, 1, 0, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         cv::Sobel( img_ao_fmat_pyr[i], img_ao_dy_fmat_pyr[i], CV_32F, 0, 1, 3, 1/8.0, 0, cv::BORDER_DEFAULT );
         img_ao_dx_fmat_pyr[i].convertTo(img_ao_dx_fmat_pyr[i], CV_32F);
@@ -162,10 +203,13 @@ void ConstructImgPyramide(const cv::Mat & img_ao_fmat, cv::Mat * img_ao_fmat_pyr
     
     // pad images
     for (int i=0; i<=lv_f; ++i)  // Construct image and gradient pyramides
+
     {
       copyMakeBorder(img_ao_fmat_pyr[i],img_ao_fmat_pyr[i],imgpadding,imgpadding,imgpadding,imgpadding,cv::BORDER_REPLICATE);  // Replicate border for image padding
       img_ao_pyr[i] = (float*)img_ao_fmat_pyr[i].data;
-
+//      stringstream ss;
+//      ss<<"Img Pyr, layer: "<<i<<endl;
+//      display_caption(img_ao_fmat_pyr[i],&ss.str()[0]);
       if ( getgrad ) 
       {
         copyMakeBorder(img_ao_dx_fmat_pyr[i],img_ao_dx_fmat_pyr[i],imgpadding,imgpadding,imgpadding,imgpadding,cv::BORDER_CONSTANT , 0); // Zero padding for gradients
@@ -173,10 +217,16 @@ void ConstructImgPyramide(const cv::Mat & img_ao_fmat, cv::Mat * img_ao_fmat_pyr
 
         img_ao_dx_pyr[i] = (float*)img_ao_dx_fmat_pyr[i].data;
         img_ao_dy_pyr[i] = (float*)img_ao_dy_fmat_pyr[i].data;      
+        //ss<<"dx Pyr, layer: "<<i<<endl;
+        //display_caption(img_ao_dx_fmat_pyr[i],&ss.str()[0]);
+        //ss<<"dy Pyr, layer: "<<i<<endl;
+        //display_caption(img_ao_dy_fmat_pyr[i],&ss.str()[0]);
       }
     }
 }
 
+// first scale(coarest)
+// the number of subsampling *0.2 needed to have maximal displacement within one patch
 int AutoFirstScaleSelect(int imgwidth, int fratio, int patchsize)
 {
   return std::max(0,(int)std::floor(log2((2.0f*(float)imgwidth) / ((float)fratio * (float)patchsize))));
@@ -226,38 +276,57 @@ int main( int argc, char** argv )
   {
     mindprate = 0.05; mindrrate = 0.95; minimgerr = 0.0;    
     usefbcon = 0; patnorm = 1; costfct = 0; 
+    //alpha: smoothness
     tv_alpha = 10.0; tv_gamma = 10.0; tv_delta = 5.0;
-    tv_innerit = 1; tv_solverit = 3; tv_sor = 1.6;
-    verbosity = 2; // Default: Plot detailed timings
+    tv_innerit = 1; tv_solverit = 10; tv_sor = 1.6;
+    verbosity = 4; // Default: Plot detailed timings
         
-    int fratio = 5; // For automatic selection of coarsest scale: 1/fratio * width = maximum expected motion magnitude in image. Set lower to restrict search space.
+    int fratio = 5; // For automatic selection of coarsest scale: (1/fratio) * width = maximum expected motion magnitude in image. Set lower to restrict search space.
     
     int sel_oppoint = 2; // Default operating point
-    if (argc==5)         // Use provided operating point
+    if (argc==5){         // Use provided operating point
       sel_oppoint=atoi(argv[4]);
-      
+      cout<<"arc==5"<<"selec pt:"<<sel_oppoint<<endl;
+    }
     switch (sel_oppoint)
     {
       case 1:
+	cout<<"CASE1"<<endl;
         patchsz = 8; poverl = 0.3; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-2,0); maxiter = 16; miniter = 16; 
         usetvref = 0; 
         break;
       case 3:
+	cout<<"CASE2"<<endl;
         patchsz = 12; poverl = 0.75; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-4,0); maxiter = 16; miniter = 16; 
         usetvref = 1; 
         break;
       case 4:
+	cout<<"CASE4"<<endl;
         patchsz = 12; poverl = 0.75; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
         usetvref = 1; 
         break;        
+      case 5:
+	cout<<"CASE5"<<endl;
+	usefbcon = 0;
+        patchsz = 8; poverl = 0.75; 
+        lv_f = 2;
+	//lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
+        lv_l = 0; maxiter = 128; miniter =128;
+        //lv_l = 0; maxiter = 256; miniter =256;
+	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
+        usetvref = 1; 
+        //tv_alpha = 10;
+	break;
       case 2:
+	cout<<"CASE2"<<endl;
       default:
+	cout<<"CASE default"<<endl;
         patchsz = 8; poverl = 0.4; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-2,0); maxiter = 12; miniter = 12; 
@@ -298,6 +367,7 @@ int main( int argc, char** argv )
   // *** Pad image such that width and height are restless divisible on all scales (except last)
   int padw=0, padh=0;
   int scfct = pow(2,lv_f); // enforce restless division by this number on coarsest scale
+
   //if (hasinfile) scfct = pow(2,lv_f+1); // if initialization file is given, make sure that size is restless divisible by 2^(lv_f+1) !
   int div = sz.width % scfct;
   if (div>0) padw = scfct - div;
@@ -324,6 +394,7 @@ int main( int argc, char** argv )
   
   //  *** Generate scale pyramides
   img_ao_mat.convertTo(img_ao_fmat, CV_32F); // convert to float
+  imshow("before CV_32F",img_ao_mat);
   img_bo_mat.convertTo(img_bo_fmat, CV_32F);
   
   const float* img_ao_pyr[lv_f+1];

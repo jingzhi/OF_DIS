@@ -20,7 +20,7 @@ image_t *image_new(const int width, const int height){
     }
     image->width = width;
     image->height = height;  
-    image->stride = ( (width+3) / 4 ) * 4;
+    image->stride = ( (width+3) / 4 ) * 4;//multiple of 4
     image->c1 = (float*) memalign(16, image->stride*height*sizeof(float));
     if(image->c1== NULL){
         fprintf(stderr, "Error: image_new() - not enough memory !\n");

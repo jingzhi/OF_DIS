@@ -54,7 +54,10 @@ PatClass::~PatClass()
   delete pc;
 }
 
-void PatClass::InitializePatch(Eigen::Map<const Eigen::MatrixXf> * im_ao_in, Eigen::Map<const Eigen::MatrixXf> * im_ao_dx_in, Eigen::Map<const Eigen::MatrixXf> * im_ao_dy_in, const Eigen::Vector2f pt_ref_in)
+void PatClass::InitializePatch(Eigen::Map<const Eigen::MatrixXf> * im_ao_in, 
+		               Eigen::Map<const Eigen::MatrixXf> * im_ao_dx_in, 
+			       Eigen::Map<const Eigen::MatrixXf> * im_ao_dy_in, 
+			       const Eigen::Vector2f pt_ref_in)
 {
   im_ao = im_ao_in;
   im_ao_dx = im_ao_dx_in;
@@ -65,6 +68,7 @@ void PatClass::InitializePatch(Eigen::Map<const Eigen::MatrixXf> * im_ao_in, Eig
 
   getPatchStaticNNGrad(im_ao->data(), im_ao_dx->data(), im_ao_dy->data(), &pt_ref, &tmp, &dxx_tmp, &dyy_tmp);
 
+  variance = (tmp.array() - tmp.mean()).square().sum()/(tmp.size()-1);
   ComputeHessian();
 }
 
@@ -182,8 +186,10 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
     #endif
 
     pc->delta_p = pc->Hes.llt().solve(pc->delta_p); // solve linear system
+    //Ax=b, solve for x = A.llt().solve(b)
     
-    pc->p_iter -= pc->delta_p; // update flow vector
+    pc->p_iter -= std::pow(0.999,floor(pc->cnt/2))*pc->delta_p*1.2; // update flow vector
+    //pc->p_iter -= pc->delta_p; // update flow vector
     
     #if (SELECTMODE==2) // if stereo depth
     if (cpt->camlr==0)
@@ -193,12 +199,14 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
     #endif
       
     // compute patch locations based on new parameter vector
-    paramtopt(); 
+    paramtopt();  //pc->pt_iter = pt_ref + pc->p_iter;    
       
     // check if patch(es) moved too far from starting location, if yes, stop iteration and reset to starting location
-    if ((pc->pt_st - pc->pt_iter).norm() > op->outlierthresh  // check if query patch moved more than >padval from starting location -> most likely outlier
+    if ((pc->pt_st - pc->pt_iter).norm() > op->outlierthresh  
+        // check if query patch moved more than >padval from starting location -> most likely outlier
         ||                  
-        pc->pt_iter[0] < cpt->tmp_lb  || pc->pt_iter[1] < cpt->tmp_lb ||    // check patch left valid image region
+        pc->pt_iter[0] < cpt->tmp_lb  || pc->pt_iter[1] < cpt->tmp_lb ||    
+	// check patch left valid image region
         pc->pt_iter[0] > cpt->tmp_ubw || pc->pt_iter[1] > cpt->tmp_ubh)  
     {
       pc->p_iter = pc->p_in; // reset
@@ -220,19 +228,22 @@ inline void PatClass::paramtopt()
     #endif
 }
 
-void PatClass::LossComputeErrorImage(Eigen::Matrix<float, Eigen::Dynamic, 1>* patdest, Eigen::Matrix<float, Eigen::Dynamic, 1>* wdest, const Eigen::Matrix<float, Eigen::Dynamic, 1>* patin,  const Eigen::Matrix<float, Eigen::Dynamic, 1>*  tmpin)
+void PatClass::LossComputeErrorImage(Eigen::Matrix<float, Eigen::Dynamic, 1>* patdest,//pdiff
+		                     Eigen::Matrix<float, Eigen::Dynamic, 1>* wdest,//pweight 
+				     const Eigen::Matrix<float, Eigen::Dynamic, 1>* patin, //pdiff 
+				     const Eigen::Matrix<float, Eigen::Dynamic, 1>*  tmpin)//tempin
 {
-  v4sf * pd = (v4sf*) patdest->data(),
-       * pa = (v4sf*) patin->data(),  
-       * te = (v4sf*) tmpin->data(),
-       * pw = (v4sf*) wdest->data();
+  v4sf * pd = (v4sf*) patdest->data(),//pdiff
+       * pa = (v4sf*) patin->data(), //pdiff 
+       * te = (v4sf*) tmpin->data(),//temp
+       * pw = (v4sf*) wdest->data();//pweight
 
   if (op->costfct==0) // L2 cost function
   {
     for (int i=op->novals/4; i--; ++pd, ++pa, ++te, ++pw)
     {
       (*pd) = (*pa)-(*te);  // difference image
-      (*pw) = __builtin_ia32_andnps(op->negzero,  (*pd) );
+      (*pw) = __builtin_ia32_andnps(op->negzero,  (*pd) );//bitwise and not->abs 
     }
   }
   else if (op->costfct==1) // L1 cost function
@@ -332,7 +343,9 @@ void PatClass::getPatchStaticNNGrad(const float* img, const float* img_dx, const
 }
 
 // Extract patch on float position with bilinear interpolation, no gradients.
-void PatClass::getPatchStaticBil(const float* img, const Eigen::Vector2f* mid_in,  Eigen::Matrix<float, Eigen::Dynamic, 1>* tmp_in_e)
+void PatClass::getPatchStaticBil(const float* img, 
+		                 const Eigen::Vector2f* mid_in, 
+				 Eigen::Matrix<float, Eigen::Dynamic, 1>* tmp_in_e)
 {
   float *tmp_in    = tmp_in_e->data();
   

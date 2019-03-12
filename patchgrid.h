@@ -62,7 +62,7 @@ private:
   
   std::vector<OFC::PatClass*> pat; // Patch Objects
   std::vector<Eigen::Vector2f> pt_ref; // Midpoints for reference patches
-  #if (SELECTMODE==1)
+  #if (SELECTMODE==1)//OF
   std::vector<Eigen::Vector2f>            p_init; // starting parameters for query patches, use only 1 for depth, 2 for OF, all 4 for scene flow  
   #else  
   std::vector<Eigen::Matrix<float, 1, 1>> p_init; // starting parameters for query patches, use only 1 for depth, 2 for OF, all 4 for scene flow    

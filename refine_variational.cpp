@@ -55,9 +55,11 @@ namespace OFC
   #endif
   std::vector<image_t*> flow_sep(noparam);  
 
+  //alllocate new aligned img mem
   for (int i = 0; i < noparam; ++i )
     flow_sep[i] = image_new(cpt->width,cpt->height);
   
+  //initialise mem content with flow content from densification (hold in flowout)
   for (int iy = 0; iy < cpt->height; ++iy)
     for (int ix = 0; ix < cpt->width; ++ix)
     {
@@ -161,21 +163,39 @@ void VarRefClass::RefLevelOF(image_t *wx, image_t *wy, const color_image_t *im1,
     int stride = wx->stride;
 
 
-    image_t *du = image_new(width,height), *dv = image_new(width,height), // the flow increment
-      *mask = image_new(width,height), // mask containing 0 if a point goes outside image boundary, 1 otherwise
-      *smooth_horiz = image_new(width,height), *smooth_vert = image_new(width,height), // horiz: (i,j) contains the diffusivity coeff. from (i,j) to (i+1,j) 
-      *uu = image_new(width,height), *vv = image_new(width,height), // flow plus flow increment
-      *a11 = image_new(width,height), *a12 = image_new(width,height), *a22 = image_new(width,height), // system matrix A of Ax=b for each pixel
-      *b1 = image_new(width,height), *b2 = image_new(width,height); // system matrix b of Ax=b for each pixel  
+    image_t *du = image_new(width,height), 
+	    *dv = image_new(width,height), // the flow increment
+            *mask = image_new(width,height), // mask containing 0 if a point goes outside image boundary, 1 otherwise
+            *smooth_horiz = image_new(width,height), 
+	    *smooth_vert = image_new(width,height), // horiz: (i,j) contains the diffusivity coeff. from (i,j) to (i+1,j) 
+            *uu = image_new(width,height), 
+	    *vv = image_new(width,height), // flow plus flow increment
+            *a11 = image_new(width,height), 
+	    *a12 = image_new(width,height), 
+	    *a22 = image_new(width,height), // system matrix A of Ax=b for each pixel
+            *b1 = image_new(width,height), 
+	    *b2 = image_new(width,height); // system matrix b of Ax=b for each pixel  
       
     #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)  // use single band image
     image_t *w_im2 = image_new(width,height), // warped second image
-        *Ix = image_new(width,height), *Iy = image_new(width,height), *Iz = image_new(width,height), // first order derivatives
-        *Ixx = image_new(width,height), *Ixy = image_new(width,height), *Iyy = image_new(width,height), *Ixz = image_new(width,height), *Iyz = image_new(width,height); // second order derivatives
+            *Ix = image_new(width,height), 
+	    *Iy = image_new(width,height), 
+	    *Iz = image_new(width,height), // first order derivatives
+            *Ixx = image_new(width,height), 
+	    *Ixy = image_new(width,height), 
+	    *Iyy = image_new(width,height), 
+	    *Ixz = image_new(width,height), 
+	    *Iyz = image_new(width,height); // second order derivatives
     #else                                     // use RGB image
     color_image_t *w_im2 = color_image_new(width,height), // warped second image
-        *Ix = color_image_new(width,height), *Iy = color_image_new(width,height), *Iz = color_image_new(width,height), // first order derivatives
-        *Ixx = color_image_new(width,height), *Ixy = color_image_new(width,height), *Iyy = color_image_new(width,height), *Ixz = color_image_new(width,height), *Iyz = color_image_new(width,height); // second order derivatives
+                  *Ix = color_image_new(width,height), 
+		  *Iy = color_image_new(width,height), 
+		  *Iz = color_image_new(width,height), // first order derivatives
+                  *Ixx = color_image_new(width,height), 
+		  *Ixy = color_image_new(width,height), 
+		  *Iyy = color_image_new(width,height), 
+		  *Ixz = color_image_new(width,height), 
+		  *Iyz = color_image_new(width,height); // second order derivatives
     #endif
                 
     // warp second image
@@ -252,12 +272,14 @@ void VarRefClass::RefLevelDE(image_t *wx, const color_image_t *im1, const color_
     int height = wx->height;
     int stride = wx->stride;
 
-      image_t *du = image_new(width,height), *wy_dummy = image_new(width,height), // the flow increment
-        *mask = image_new(width,height), // mask containing 0 if a point goes outside image boundary, 1 otherwise
-        *smooth_horiz = image_new(width,height), *smooth_vert = image_new(width,height), // horiz: (i,j) contains the diffusivity coeff. from (i,j) to (i+1,j) 
-        *uu = image_new(width,height), // flow plus flow increment
-        *a11 = image_new(width,height), // system matrix A of Ax=b for each pixel
-        *b1 = image_new(width,height); // system matrix b of Ax=b for each pixel  
+      image_t *du = image_new(width,height), 
+	      *wy_dummy = image_new(width,height), // the flow increment
+              *mask = image_new(width,height), // mask containing 0 if a point goes outside image boundary, 1 otherwise
+              *smooth_horiz = image_new(width,height), 
+	      *smooth_vert = image_new(width,height), // horiz: (i,j) contains the diffusivity coeff. from (i,j) to (i+1,j) 
+              *uu = image_new(width,height), // flow plus flow increment
+              *a11 = image_new(width,height), // system matrix A of Ax=b for each pixel
+              *b1 = image_new(width,height); // system matrix b of Ax=b for each pixel  
         
       image_erase(wy_dummy);
 	
@@ -267,8 +289,14 @@ void VarRefClass::RefLevelDE(image_t *wx, const color_image_t *im1, const color_
           *Ixx = image_new(width,height), *Ixy = image_new(width,height), *Iyy = image_new(width,height), *Ixz = image_new(width,height), *Iyz = image_new(width,height); // second order derivatives
       #else                                     // use RGB image
       color_image_t *w_im2 = color_image_new(width,height), // warped second image
-          *Ix = color_image_new(width,height), *Iy = color_image_new(width,height), *Iz = color_image_new(width,height), // first order derivatives
-          *Ixx = color_image_new(width,height), *Ixy = color_image_new(width,height), *Iyy = color_image_new(width,height), *Ixz = color_image_new(width,height), *Iyz = color_image_new(width,height); // second order derivatives
+                    *Ix = color_image_new(width,height), 
+		    *Iy = color_image_new(width,height), 
+		    *Iz = color_image_new(width,height), // first order derivatives
+                    *Ixx = color_image_new(width,height), 
+		    *Ixy = color_image_new(width,height), 
+		    *Iyy = color_image_new(width,height), 
+		    *Ixz = color_image_new(width,height), 
+		    *Iyz = color_image_new(width,height); // second order derivatives
       #endif
           
       // warp second image

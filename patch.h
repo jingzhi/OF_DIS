@@ -73,6 +73,7 @@ public:
   inline const Eigen::Vector2f GetPointPos() const { return pc->pt_iter; }  // get current iteration patch position (in this frame's opposite camera for OF, Depth)
   inline const bool IsValid() const { return (!pc->invalid) ; }
   inline const float * GetpWeightPtr() const {return (float*) pc->pweight.data(); } // Return data pointer to image error patch, used in efficient indexing for densification in patchgrid class
+  inline const float GetpVar() const {return variance; } // Return data pointer to image error patch, used in efficient indexing for densification in patchgrid class
 
   #if (SELECTMODE==1) // Optical Flow
   inline const Eigen::Vector2f*            GetParam()    const { return &(pc->p_iter); }   // get current iteration parameters
@@ -120,6 +121,8 @@ private:
   const int patchid;
   
   patchstate * pc = nullptr; // current patch state
+
+  float variance;
     
 };
 

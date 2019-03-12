@@ -10,10 +10,16 @@
 #include <Eigen/LU>
 #include <Eigen/Dense>
 
-// #include <opencv2/core/core.hpp> // needed for verbosity >= 3, DISVISUAL
-// #include <opencv2/highgui/highgui.hpp> // needed for verbosity >= 3, DISVISUAL
-// #include <opencv2/imgproc/imgproc.hpp> // needed for verbosity >= 3, DISVISUAL
-
+//#include <opencv2/core/core.hpp> // needed for verbosity >= 3, DISVISUAL
+//#include <opencv2/highgui/highgui.hpp> // needed for verbosity >= 3, DISVISUAL
+//#include <opencv2/imgproc/imgproc.hpp> // needed for verbosity >= 3, DISVISUAL
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui//highgui.hpp>
+#include <opencv2/video/video.hpp>
+#include "opencv2/optflow.hpp"
+#include "opencv2/core/ocl.hpp"
+#include <fstream>
+#include <limits>
 #include <sys/time.h>    // timeof day
 #include <stdio.h>  
 
@@ -25,7 +31,39 @@
 using std::cout;
 using std::endl;
 using std::vector;
+using namespace cv;
 
+
+float my_mean(Mat & in_data){
+    int w=in_data.cols;
+    int h=in_data.rows;
+    int crop=1;
+    float sum=0.f;
+    for(int i = crop;i < w-crop;i++){
+       for(int j = crop; j<h-crop;j++){
+           if(in_data.at<float>(i,j)<22.5) sum+=360.f-in_data.at<float>(i,j);
+	   else sum+=in_data.at<float>(i,j);
+       }
+    }
+
+    return sum/((w-2*crop)*(h-2*crop));
+
+}
+Mat flowToDisplay(const Mat flow)
+{
+    Mat flow_split[2];
+    Mat magnitude, angle;
+    Mat hsv_split[3], hsv, rgb;
+    split(flow, flow_split);
+    cartToPolar(flow_split[0], flow_split[1], magnitude, angle, true);
+    normalize(magnitude, magnitude, 0, 1, NORM_MINMAX);
+    hsv_split[0] = angle; // already in degrees - no normalization needed
+    hsv_split[1] = Mat::ones(angle.size(), angle.type());
+    hsv_split[2] = magnitude;
+    merge(hsv_split, 3, hsv);
+    cvtColor(hsv, rgb, COLOR_HSV2BGR);
+    return rgb;
+}
 namespace OFC
 {
 
@@ -43,11 +81,11 @@ namespace OFC
                   const float  dp_thresh_in,
                   const float  dr_thresh_in,
                   const float res_thresh_in,            
-                  const int p_samp_s_in,
-                  const float patove_in,
+                  const int p_samp_s_in,//patch size
+                  const float patove_in,//patch overlap rate in %
                   const bool usefbcon_in, 
-                  const int costfct_in,                   
-                  const int noc_in,
+                  const int costfct_in,//cost function                   
+                  const int noc_in,//no of channel
                   const int patnorm_in, 
                   const bool usetvref_in,
                   const float tv_alpha_in,
@@ -79,7 +117,7 @@ namespace OFC
   op.nop = 1;
   #endif
   op.p_samp_s = p_samp_s_in;  // patch has even border length, center pixel is at (p_samp_s/2, p_samp_s/2) (ZERO INDEXED!) 
-  op.outlierthresh = (float)op.p_samp_s/2;     
+  op.outlierthresh = (float)op.p_samp_s;     
   op.patove = patove_in;
   op.sc_f = sc_f_in;
   op.sc_l = sc_l_in;
@@ -278,10 +316,12 @@ namespace OFC
       tt_all[ii] += tt_compflow[ii];                                                                                                                                                                                                          
       
       gettimeofday(&tv_start_all, nullptr);
-    }    
-  
-  
+    }
+
+
     // Variational refinement, (Step 5 in Algorithm 1 of paper)
+    for(int i=0;i<1;i++){
+    //for(int i=0;i<15;i++){
     if (op.usetvref)
     {
       OFC::VarRefClass varref_fw(im_ao[sl], im_ao_dx[sl], im_ao_dy[sl], 
@@ -293,6 +333,8 @@ namespace OFC
                                     im_ao[sl], im_ao_dx[sl], im_ao_dy[sl]
                                     ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii]);
     }
+    }
+    
     
     // Timing, Variational Refinement
     if (op.verbosity>1)
@@ -303,6 +345,213 @@ namespace OFC
       printf("TIME (Sc: %i, #p:%6i, pconst, pinit, poptim, cflow, tvopt, total): %8.2f %8.2f %8.2f %8.2f %8.2f -> %8.2f ms.\n", sl, grid_fw[ii]->GetNoPatches(), tt_patconstr[ii], tt_patinit[ii], tt_patoptim[ii], tt_compflow[ii], tt_tvopt[ii], tt_all[ii]);
     }
                                                                 
+    // occlusion refinement
+    if(false){
+     //****params****//
+    int window_sz=5; //9x9 sliding window
+    int stride=1;
+    float std_thres=0.6;
+    //****load uin8 img****//
+  
+    int width_org=cpl[ii].width;
+    int height_org=cpl[ii].height;
+    Mat in_flow(cpl[ii].height,cpl[ii].width,CV_32FC2, tmp_ptr), out_flow(width_org,height_org,CV_32FC2);
+    out_flow=in_flow.clone();
+    vector<Mat> in_flow_split;
+    split(in_flow, in_flow_split);
+    //****Perturb the flow within sliding window****//
+    for(int iter =0;iter<1;iter++){
+        for (int col = 0; col <= width_org - window_sz;col+=stride){
+            for (int row = 0; row<=height_org - window_sz;row+=stride){
+                Mat window_data, 
+            	window_data_gray, 
+            	window_flow, //[0],[1]
+            	window_flow_u,
+            	window_flow_v, 
+            	window_error,
+                    mean_u,
+                    mean_v,
+            	mean_error,
+                    std_u,
+                    std_v,
+            	std_error;
+                Rect roi(col,row,window_sz,window_sz);
+                window_flow_u = in_flow_split[0](roi);
+                window_flow_v = in_flow_split[1](roi);
+                window_flow = in_flow(roi);
+                meanStdDev(window_flow_u,mean_u,std_u);
+                meanStdDev(window_flow_v,mean_v,std_v);
+                if(std_u.at<double>(0,0) > std_thres || std_v.at<double>(0,0) >std_thres){
+                    bool warp_valid = true;//warping_error(window_error, roi, window_data, window_flow_u, window_flow_v, img_bo_mat);
+                    if(warp_valid){
+                        meanStdDev(window_error,mean_error,std_error);
+                        //rectangle(img_viz, roi, Scalar(255,0,0), 1, 8, 0);
+                        //rectangle(flow_viz, roi, Scalar(2550,0,0), 1, 8, 0);
+            	    Mat padded_window_flow,
+            		window_flow_mag,
+            		window_flow_angle,
+            		window_flow_mag_dx,
+            		window_flow_mag_dy,
+            		window_flow_mag_grad,
+            		window_flow_mag_grad_angle;
+		    Point max_dx_loc,
+			  max_dy_loc,
+			  min_dx_loc,
+			  min_dy_loc;
+		    double max_dx_val,
+			   max_dy_val,
+			   min_dx_val,
+			   min_dy_val;
+            	    cartToPolar(window_flow_u,window_flow_v,window_flow_mag,window_flow_angle,true); //true= angle in degree;
+            	    Sobel(window_flow_mag,window_flow_mag_dx,CV_32F,1,0,3,1,0,BORDER_DEFAULT);
+            	    Sobel(window_flow_mag,window_flow_mag_dy,CV_32F,0,1,3,1,0,BORDER_DEFAULT);
+            	    cartToPolar(window_flow_mag_dx,window_flow_mag_dy,window_flow_mag_grad,window_flow_mag_grad_angle,true); //true= angle in degree;
+            	    float meanDirection=my_mean(window_flow_mag_grad_angle);
+            	    Scalar meanGrad=cv::mean(window_flow_mag_grad);
+            	    Scalar meanFlowDirection=cv::mean(window_flow_angle);
+            	    Scalar meanFlowMag=cv::mean(window_flow_mag);
+            	    Mat_<int> speed_vec(2,1),flow_vec(2,1);
+		    minMaxLoc(window_flow_mag_dx,&min_dx_val,&max_dx_val,&min_dx_loc,&max_dx_loc);
+		    minMaxLoc(window_flow_mag_dy,&min_dy_val,&max_dy_val,&min_dy_loc,&max_dy_loc);
+            	    //****SPEED PATTERN****//
+
+            	    if(22.5<= meanDirection && meanDirection< 67.5){
+            		    speed_vec<<1,-1;
+            	    }
+            	    else if(67.5<= meanDirection && meanDirection< 112.5){
+            		    speed_vec<<0,-1;
+            	    }
+            	    else if(112.5<= meanDirection && meanDirection< 157.5){
+            		    speed_vec<<-1,-1;
+            	    }
+            	    else if(157.5<= meanDirection && meanDirection< 202.5){
+            		    speed_vec<<-1,0;
+            	    }
+            	    else if(202.5<= meanDirection && meanDirection< 247.5){
+            		    speed_vec<<-1,1;
+            	    }
+            	    else if(247.5<= meanDirection && meanDirection< 292.5){
+            		    speed_vec<<0,1;
+            	    }
+            	    else if(292.5<= meanDirection && meanDirection< 337.5){
+            		    speed_vec<<1,1;
+            	    }
+            	    else{
+            		    speed_vec<<1,0;
+            	    }
+            	    //****FLOW DIRECTION****//
+            	    if(23.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 67.5){
+            		    flow_vec<<1,-1;
+            		    
+            	    }
+            	    else if(67.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 112.5){
+            		    flow_vec<<0,-1;
+            	    }
+            	    else if(112.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 157.5){
+            		    flow_vec<<-1,-1;
+            	    }
+            	    else if(157.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 202.5){
+            		    flow_vec<<-1,0;
+            	    }
+            	    else if(202.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 247.5){
+            		    flow_vec<<-1,1;
+            	    }
+            	    else if(247.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 292.5){
+            		    flow_vec<<0,1;
+            	    }
+            	    else if(292.5<= meanFlowDirection.val[0] && meanFlowDirection.val[0]< 337.5){
+            		    flow_vec<<1,1;
+            	    }
+            	    else{
+            		    flow_vec<<1,0;
+            	    }
+            	    //****PERTURB FLOW****//
+		    float learning = 2.f;
+		    float del_step = 20;
+		    float offset=1;
+
+             	    if(flow_vec.dot(speed_vec)>0)//SAME direction
+            	    {
+            	            int del_row  = floor(offset+1/max(abs(min_dy_val),abs(max_dy_val))*del_step),//round(std_u.at<double>(0,0)*1.5),
+				del_col  = floor(offset+1/max(abs(min_dx_val),abs(max_dx_val))*del_step);//round(std_v.at<double>(0,0)*1.5);
+            	            copyMakeBorder(window_flow, padded_window_flow, del_row, del_row, del_col, del_col, BORDER_REPLICATE);
+            		    int col_new = del_col - del_col*speed_vec.at<int>(0,0);
+            		    int row_new = del_row + del_row*speed_vec.at<int>(1,0);
+			    double weight = 1/learning;
+                            Rect roi_target(col_new,row_new,window_sz,window_sz);
+            		    Mat test = ((weight*padded_window_flow(roi_target))+((1-weight)*out_flow(roi)));
+			    //Mat blur;
+            		    //GaussianBlur(test,blur,cv::Size(0,0),3);
+			    //addWeighted(blur,1.5,test,-0.5,0,test);
+			    test.copyTo(out_flow(roi));
+            	    }
+		    else if(flow_vec.dot(speed_vec)<0)//OPPOSITE Direction
+            	    {
+            	            int del_row  = floor(offset+1/max(abs(min_dy_val),abs(max_dy_val))*del_step),//round(std_u.at<double>(0,0)*1.5),
+				del_col  = floor(offset+1/max(abs(min_dx_val),abs(max_dx_val))*del_step);//round(std_v.at<double>(0,0)*1.5);
+            	            copyMakeBorder(window_flow, padded_window_flow, del_row, del_row, del_col, del_col, BORDER_REPLICATE);
+            		    int col_new = del_col - del_col*speed_vec.at<int>(0,0);
+            		    int row_new = del_row + del_row*speed_vec.at<int>(1,0);
+			    double weight = 1/learning;
+                            Rect roi_target(col_new,row_new,window_sz,window_sz);
+            		    Mat test = ((weight*padded_window_flow(roi_target))+((1-weight)*out_flow(roi)));
+			    //Mat blur;
+            		    //GaussianBlur(test,blur,cv::Size(0,0),3);
+			    //addWeighted(blur,1.5,test,-0.5,0,test);
+			    test.copyTo(out_flow(roi));
+            	    }
+		    else{
+			//cout<<"PERP dirc"<<endl;
+		    }
+                    }    
+                }
+            }    
+        }
+    // Copy flow result back
+    for (int iy = 0; iy < height_org; iy++){
+      for (int ix = 0; ix < width_org; ix++){
+        int i  = iy * width_org+ ix;
+        for (int j = 0; j < 2; j++){
+	  //cout<<"Before: "<<tmp_ptr[i*2+j]<<endl;
+          tmp_ptr[i*2 + j] = out_flow.at<Vec2f>(iy,ix)[j];
+	  //cout<<"After: "<<tmp_ptr[i*2+j]<<endl;
+	}
+      }
+    }
+    
+    // Variational refinement, (Step 5 in Algorithm 1 of paper)
+    for(int i =0;i<15;i++){
+      if (op.usetvref)
+      {
+        OFC::VarRefClass varref_fw(im_ao[sl], im_ao_dx[sl], im_ao_dy[sl], 
+                                  im_bo[sl], im_bo_dx[sl], im_bo_dy[sl]
+                                  ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr);
+        
+        if (op.usefbcon  && sl > op.sc_l )    // skip at last scale, backward flow no longer needed
+            OFC::VarRefClass varref_bw(im_bo[sl], im_bo_dx[sl], im_bo_dy[sl], 
+                                      im_ao[sl], im_ao_dx[sl], im_ao_dy[sl]
+                                      ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii]);
+      }
+    }
+    Mat tmp_flow(cpl[ii].height,cpl[ii].width,CV_32FC2, tmp_ptr);
+    in_flow=tmp_flow.clone();
+    split(in_flow, in_flow_split);
+    window_sz-=2;
+    }
+    for(int i =0;i<55;i++){
+      if (op.usetvref)
+      {
+        OFC::VarRefClass varref_fw(im_ao[sl], im_ao_dx[sl], im_ao_dy[sl], 
+                                  im_bo[sl], im_bo_dx[sl], im_bo_dy[sl]
+                                  ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr);
+        
+        if (op.usefbcon  && sl > op.sc_l )    // skip at last scale, backward flow no longer needed
+            OFC::VarRefClass varref_bw(im_bo[sl], im_bo_dx[sl], im_bo_dy[sl], 
+                                      im_ao[sl], im_ao_dx[sl], im_ao_dy[sl]
+                                      ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii]);
+      }
+    }
+    }
 
 //     if (op.verbosity==3) // Display displacement result of this scale // needed for verbosity >= 3, DISVISUAL
 //     {
