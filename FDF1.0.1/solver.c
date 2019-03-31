@@ -17,6 +17,8 @@ typedef __v4sf v4sf;
 //du and dv are used as initial guesses
 //The system form is the same as in opticalflow.c
 void sor_coupled_slow_but_readable(image_t *du, image_t *dv, image_t *a11, image_t *a12, image_t *a22, const image_t *b1, const image_t *b2, const image_t *dpsis_horiz, const image_t *dpsis_vert, const int iterations, const float omega)
+	//dpsis_horiz: smooth_horiz
+	//dpsis_vert: smooth_vert
 {  
     int i,j,iter;
     for(iter = 0 ; iter<iterations ; iter++)

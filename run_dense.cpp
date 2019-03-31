@@ -315,13 +315,14 @@ int main( int argc, char** argv )
 	cout<<"CASE5"<<endl;
 	usefbcon = 0;
         patchsz = 8; poverl = 0.75; 
-        lv_f = 2;
-	//lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
+        //lv_f = 1;
+	lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = 0; maxiter = 128; miniter =128;
         //lv_l = 0; maxiter = 256; miniter =256;
 	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
         usetvref = 1; 
-        //tv_alpha = 10;
+        tv_alpha = 10.0; tv_gamma = 10.0; tv_delta = 5.0;
+        tv_innerit = 5; tv_solverit =20; tv_sor = 1.6;// SOR omega
 	break;
       case 2:
 	cout<<"CASE2"<<endl;

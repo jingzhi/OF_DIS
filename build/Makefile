@@ -56,17 +56,6 @@ CMAKE_BINARY_DIR = /scratch/lijingz/MasterThesis/OF_DIS/build
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target edit_cache
-edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
-.PHONY : edit_cache
-
-# Special rule for the target edit_cache
-edit_cache/fast: edit_cache
-
-.PHONY : edit_cache/fast
-
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -77,6 +66,17 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 
 .PHONY : rebuild_cache/fast
+
+# Special rule for the target edit_cache
+edit_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
+	/usr/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : edit_cache
+
+# Special rule for the target edit_cache
+edit_cache/fast: edit_cache
+
+.PHONY : edit_cache/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -123,45 +123,6 @@ run_OF_RGB/fast:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/build
 .PHONY : run_OF_RGB/fast
 
-#=============================================================================
-# Target rules for targets named run_DE_INT
-
-# Build rule for target.
-run_DE_INT: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 run_DE_INT
-.PHONY : run_DE_INT
-
-# fast build rule for target.
-run_DE_INT/fast:
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/build
-.PHONY : run_DE_INT/fast
-
-#=============================================================================
-# Target rules for targets named run_OF_INT
-
-# Build rule for target.
-run_OF_INT: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 run_OF_INT
-.PHONY : run_OF_INT
-
-# fast build rule for target.
-run_OF_INT/fast:
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/build
-.PHONY : run_OF_INT/fast
-
-#=============================================================================
-# Target rules for targets named run_DE_RGB
-
-# Build rule for target.
-run_DE_RGB: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 run_DE_RGB
-.PHONY : run_DE_RGB
-
-# fast build rule for target.
-run_DE_RGB/fast:
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/build
-.PHONY : run_DE_RGB/fast
-
 FDF1.0.1/image.o: FDF1.0.1/image.c.o
 
 .PHONY : FDF1.0.1/image.o
@@ -169,9 +130,6 @@ FDF1.0.1/image.o: FDF1.0.1/image.c.o
 # target to build an object file
 FDF1.0.1/image.c.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/image.c.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/image.c.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/image.c.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/image.c.o
 .PHONY : FDF1.0.1/image.c.o
 
 FDF1.0.1/image.i: FDF1.0.1/image.c.i
@@ -181,9 +139,6 @@ FDF1.0.1/image.i: FDF1.0.1/image.c.i
 # target to preprocess a source file
 FDF1.0.1/image.c.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/image.c.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/image.c.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/image.c.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/image.c.i
 .PHONY : FDF1.0.1/image.c.i
 
 FDF1.0.1/image.s: FDF1.0.1/image.c.s
@@ -193,9 +148,6 @@ FDF1.0.1/image.s: FDF1.0.1/image.c.s
 # target to generate assembly for a file
 FDF1.0.1/image.c.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/image.c.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/image.c.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/image.c.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/image.c.s
 .PHONY : FDF1.0.1/image.c.s
 
 FDF1.0.1/opticalflow_aux.o: FDF1.0.1/opticalflow_aux.c.o
@@ -205,9 +157,6 @@ FDF1.0.1/opticalflow_aux.o: FDF1.0.1/opticalflow_aux.c.o
 # target to build an object file
 FDF1.0.1/opticalflow_aux.c.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/opticalflow_aux.c.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/opticalflow_aux.c.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/opticalflow_aux.c.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/opticalflow_aux.c.o
 .PHONY : FDF1.0.1/opticalflow_aux.c.o
 
 FDF1.0.1/opticalflow_aux.i: FDF1.0.1/opticalflow_aux.c.i
@@ -217,9 +166,6 @@ FDF1.0.1/opticalflow_aux.i: FDF1.0.1/opticalflow_aux.c.i
 # target to preprocess a source file
 FDF1.0.1/opticalflow_aux.c.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/opticalflow_aux.c.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/opticalflow_aux.c.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/opticalflow_aux.c.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/opticalflow_aux.c.i
 .PHONY : FDF1.0.1/opticalflow_aux.c.i
 
 FDF1.0.1/opticalflow_aux.s: FDF1.0.1/opticalflow_aux.c.s
@@ -229,9 +175,6 @@ FDF1.0.1/opticalflow_aux.s: FDF1.0.1/opticalflow_aux.c.s
 # target to generate assembly for a file
 FDF1.0.1/opticalflow_aux.c.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/opticalflow_aux.c.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/opticalflow_aux.c.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/opticalflow_aux.c.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/opticalflow_aux.c.s
 .PHONY : FDF1.0.1/opticalflow_aux.c.s
 
 FDF1.0.1/solver.o: FDF1.0.1/solver.c.o
@@ -241,9 +184,6 @@ FDF1.0.1/solver.o: FDF1.0.1/solver.c.o
 # target to build an object file
 FDF1.0.1/solver.c.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/solver.c.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/solver.c.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/solver.c.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/solver.c.o
 .PHONY : FDF1.0.1/solver.c.o
 
 FDF1.0.1/solver.i: FDF1.0.1/solver.c.i
@@ -253,9 +193,6 @@ FDF1.0.1/solver.i: FDF1.0.1/solver.c.i
 # target to preprocess a source file
 FDF1.0.1/solver.c.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/solver.c.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/solver.c.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/solver.c.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/solver.c.i
 .PHONY : FDF1.0.1/solver.c.i
 
 FDF1.0.1/solver.s: FDF1.0.1/solver.c.s
@@ -265,9 +202,6 @@ FDF1.0.1/solver.s: FDF1.0.1/solver.c.s
 # target to generate assembly for a file
 FDF1.0.1/solver.c.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/FDF1.0.1/solver.c.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/FDF1.0.1/solver.c.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/FDF1.0.1/solver.c.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/FDF1.0.1/solver.c.s
 .PHONY : FDF1.0.1/solver.c.s
 
 oflow.o: oflow.cpp.o
@@ -277,9 +211,6 @@ oflow.o: oflow.cpp.o
 # target to build an object file
 oflow.cpp.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/oflow.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/oflow.cpp.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/oflow.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/oflow.cpp.o
 .PHONY : oflow.cpp.o
 
 oflow.i: oflow.cpp.i
@@ -289,9 +220,6 @@ oflow.i: oflow.cpp.i
 # target to preprocess a source file
 oflow.cpp.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/oflow.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/oflow.cpp.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/oflow.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/oflow.cpp.i
 .PHONY : oflow.cpp.i
 
 oflow.s: oflow.cpp.s
@@ -301,9 +229,6 @@ oflow.s: oflow.cpp.s
 # target to generate assembly for a file
 oflow.cpp.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/oflow.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/oflow.cpp.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/oflow.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/oflow.cpp.s
 .PHONY : oflow.cpp.s
 
 patch.o: patch.cpp.o
@@ -313,9 +238,6 @@ patch.o: patch.cpp.o
 # target to build an object file
 patch.cpp.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/patch.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/patch.cpp.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/patch.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/patch.cpp.o
 .PHONY : patch.cpp.o
 
 patch.i: patch.cpp.i
@@ -325,9 +247,6 @@ patch.i: patch.cpp.i
 # target to preprocess a source file
 patch.cpp.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/patch.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/patch.cpp.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/patch.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/patch.cpp.i
 .PHONY : patch.cpp.i
 
 patch.s: patch.cpp.s
@@ -337,9 +256,6 @@ patch.s: patch.cpp.s
 # target to generate assembly for a file
 patch.cpp.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/patch.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/patch.cpp.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/patch.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/patch.cpp.s
 .PHONY : patch.cpp.s
 
 patchgrid.o: patchgrid.cpp.o
@@ -349,9 +265,6 @@ patchgrid.o: patchgrid.cpp.o
 # target to build an object file
 patchgrid.cpp.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/patchgrid.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/patchgrid.cpp.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/patchgrid.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/patchgrid.cpp.o
 .PHONY : patchgrid.cpp.o
 
 patchgrid.i: patchgrid.cpp.i
@@ -361,9 +274,6 @@ patchgrid.i: patchgrid.cpp.i
 # target to preprocess a source file
 patchgrid.cpp.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/patchgrid.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/patchgrid.cpp.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/patchgrid.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/patchgrid.cpp.i
 .PHONY : patchgrid.cpp.i
 
 patchgrid.s: patchgrid.cpp.s
@@ -373,9 +283,6 @@ patchgrid.s: patchgrid.cpp.s
 # target to generate assembly for a file
 patchgrid.cpp.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/patchgrid.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/patchgrid.cpp.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/patchgrid.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/patchgrid.cpp.s
 .PHONY : patchgrid.cpp.s
 
 refine_variational.o: refine_variational.cpp.o
@@ -385,9 +292,6 @@ refine_variational.o: refine_variational.cpp.o
 # target to build an object file
 refine_variational.cpp.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/refine_variational.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/refine_variational.cpp.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/refine_variational.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/refine_variational.cpp.o
 .PHONY : refine_variational.cpp.o
 
 refine_variational.i: refine_variational.cpp.i
@@ -397,9 +301,6 @@ refine_variational.i: refine_variational.cpp.i
 # target to preprocess a source file
 refine_variational.cpp.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/refine_variational.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/refine_variational.cpp.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/refine_variational.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/refine_variational.cpp.i
 .PHONY : refine_variational.cpp.i
 
 refine_variational.s: refine_variational.cpp.s
@@ -409,9 +310,6 @@ refine_variational.s: refine_variational.cpp.s
 # target to generate assembly for a file
 refine_variational.cpp.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/refine_variational.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/refine_variational.cpp.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/refine_variational.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/refine_variational.cpp.s
 .PHONY : refine_variational.cpp.s
 
 run_dense.o: run_dense.cpp.o
@@ -421,9 +319,6 @@ run_dense.o: run_dense.cpp.o
 # target to build an object file
 run_dense.cpp.o:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/run_dense.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/run_dense.cpp.o
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/run_dense.cpp.o
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/run_dense.cpp.o
 .PHONY : run_dense.cpp.o
 
 run_dense.i: run_dense.cpp.i
@@ -433,9 +328,6 @@ run_dense.i: run_dense.cpp.i
 # target to preprocess a source file
 run_dense.cpp.i:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/run_dense.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/run_dense.cpp.i
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/run_dense.cpp.i
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/run_dense.cpp.i
 .PHONY : run_dense.cpp.i
 
 run_dense.s: run_dense.cpp.s
@@ -445,9 +337,6 @@ run_dense.s: run_dense.cpp.s
 # target to generate assembly for a file
 run_dense.cpp.s:
 	$(MAKE) -f CMakeFiles/run_OF_RGB.dir/build.make CMakeFiles/run_OF_RGB.dir/run_dense.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_INT.dir/build.make CMakeFiles/run_DE_INT.dir/run_dense.cpp.s
-	$(MAKE) -f CMakeFiles/run_OF_INT.dir/build.make CMakeFiles/run_OF_INT.dir/run_dense.cpp.s
-	$(MAKE) -f CMakeFiles/run_DE_RGB.dir/build.make CMakeFiles/run_DE_RGB.dir/run_dense.cpp.s
 .PHONY : run_dense.cpp.s
 
 # Help Target
@@ -456,12 +345,9 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
+	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... run_OF_RGB"
-	@echo "... run_DE_INT"
-	@echo "... rebuild_cache"
-	@echo "... run_OF_INT"
-	@echo "... run_DE_RGB"
 	@echo "... FDF1.0.1/image.o"
 	@echo "... FDF1.0.1/image.i"
 	@echo "... FDF1.0.1/image.s"

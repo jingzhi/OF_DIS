@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/scratch/lijingz/MasterThesis/Ideas/errormap.cpp
+/scratch/lijingz/MasterThesis/OF_DIS/Ideas/errormap.cpp
 opencv2/core/core.hpp
 -
 opencv2/highgui/highgui.hpp
@@ -14,17 +14,17 @@ opencv2/highgui/highgui.hpp
 opencv2/video/video.hpp
 -
 opencv2/optflow.hpp
-/scratch/lijingz/MasterThesis/Ideas/opencv2/optflow.hpp
+/scratch/lijingz/MasterThesis/OF_DIS/Ideas/opencv2/optflow.hpp
 opencv2/core/ocl.hpp
-/scratch/lijingz/MasterThesis/Ideas/opencv2/core/ocl.hpp
+/scratch/lijingz/MasterThesis/OF_DIS/Ideas/opencv2/core/ocl.hpp
 matplotlibcpp.h
-/scratch/lijingz/MasterThesis/Ideas/matplotlibcpp.h
+/scratch/lijingz/MasterThesis/OF_DIS/Ideas/matplotlibcpp.h
 fstream
 -
 limits
 -
 
-/scratch/lijingz/MasterThesis/Ideas/matplotlibcpp.h
+/scratch/lijingz/MasterThesis/OF_DIS/Ideas/matplotlibcpp.h
 vector
 -
 map

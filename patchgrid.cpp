@@ -215,7 +215,7 @@ void PatGridClass::InitializeFromCoarserOF(const float * flow_prev)
   }
 }
 
-void PatGridClass::AggregateFlowDense(float *flowout) const
+void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 {
   float* we = new float[cpt->width * cpt->height];
   int array_size=cpt->width * cpt->height;
@@ -224,6 +224,7 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
   float* point_conflict_flag = new float[cpt->width * cpt->height];
 
   memset(flowout, 0, sizeof(float) * (op->nop * cpt->width * cpt->height) );
+  memset(varout, 0, sizeof(float) * (op->nop * cpt->width * cpt->height) );
   memset(we,      0, sizeof(float) * (          cpt->width * cpt->height) );
   memset(point_conflict_flag,      0, sizeof(float) * (          cpt->width * cpt->height) );
   #ifdef USE_PARALLEL_ON_FLOWAGGR // Using this enables OpenMP on flow aggregation. This can lead to race conditions. Experimentally we found that the result degrades only marginally. However, for our experiments we did not enable this.
@@ -288,7 +289,7 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
       }
     }
   }
-    if(false){//cpt->width == 1024){
+    if(true||cpt->width == 1024){
 	    float conflict_cnt=0;
     for (int i =0;i<cpt->width;i++){
 	    for(int j =0;j<cpt->height;j++){
@@ -306,6 +307,7 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
 			all_v.at<float>(f,0)=all_flow[index][f].y;
 		}
 		double min_u, max_u, min_v, max_v;
+		Mat mean_u, std_u, mean_v, std_v;
 		Point min_u_loc,max_u_loc,min_v_loc,max_v_loc;
 		minMaxLoc(all_u,&min_u,&max_u,&min_u_loc,&max_u_loc);
 		minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
@@ -330,17 +332,16 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
 		//minMaxLoc(hist,0,&mode,0,&mode_loc);
 
 		float mode_u, mode_v;
-		Scalar mean_u, mean_v;
 		mode_u=((u_range[1]-u_range[0])/320)*mode_loc.y+u_range[0];
 		mode_v=((v_range[1]-v_range[0])/320)*mode_loc.x+v_range[0];
-		mean_u=mean(all_u);
-		mean_v=mean(all_v);
+		meanStdDev(all_u,mean_u,std_u);
+		meanStdDev(all_v,mean_v,std_v);
 		//cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
 		//cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
 		//cout<<"hist = "<<endl<<endl<<hist<<endl;
 		//cout<<"mode:"<<mode<<"; location:"<<mode_loc<<endl;
 
-		if((max_u-min_u > 8 && (max_u-mean_u.val[0]>3 || mean_u.val[0]-min_u>3)) || (max_v-min_v >8 && (max_v-mean_v.val[0]>3 || mean_v.val[0]-min_v>3))){
+		if((max_u-min_u > 5 && (max_u-mean_u.at<double>(0,0)>3 || mean_u.at<double>(0,0)-min_u>3)) || (max_v-min_v >5 && (max_v-mean_v.at<double>(0,0)>3 || mean_v.at<double>(0,0)-min_v>3))){
                     point_conflict_flag[index]=1;   
 		    conflict_cnt+=1;
 		    //cout<<"Conflict at location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
@@ -350,8 +351,14 @@ void PatGridClass::AggregateFlowDense(float *flowout) const
 		    for(unsigned f=0;f<all_flow[index].size();f++){
 		    	//cout<<"\t"<<all_flow[index][f]<<endl;
 		    }
-                    flowout[2*index]   = rand()/RAND_MAX;
-                    flowout[2*index+1] = rand()/RAND_MAX;
+                    varout[2*index]   = (float) std_u.at<double>(0,0)*(float) std_u.at<double>(0,0);
+                    varout[2*index+1] = (float) std_v.at<double>(0,0)*(float) std_v.at<double>(0,0);
+		    //if(varout[2*index]>2 || varout[2*index]>2){
+		    //cout<<"var u:"<<varout[2*index]  <<endl;
+		    //cout<<"var v:"<<varout[2*index+1]<<endl;
+                    flowout[2*index]   =  rand()/RAND_MAX;
+                    flowout[2*index+1] =  rand()/RAND_MAX;
+		    //}
 		}
                 //cout<<"org u"<<flowout[2*index]<<",org v:"<<flowout[2*index+1]<<endl;
 		//cout<<"mode u:"<<mode_u<<", mode v:"<<mode_v<<endl;

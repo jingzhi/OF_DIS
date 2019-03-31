@@ -1,4 +1,4 @@
-# Install script for directory: /scratch/lijingz/MasterThesis/Ideas
+# Install script for directory: /scratch/lijingz/MasterThesis/OF_DIS/Ideas
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/scratch/lijingz/MasterThesis/Ideas/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/scratch/lijingz/MasterThesis/OF_DIS/Ideas/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

@@ -202,7 +202,7 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
     paramtopt();  //pc->pt_iter = pt_ref + pc->p_iter;    
       
     // check if patch(es) moved too far from starting location, if yes, stop iteration and reset to starting location
-    if ((pc->pt_st - pc->pt_iter).norm() > op->outlierthresh  
+    if (false||(pc->pt_st - pc->pt_iter).norm() > 10//op->outlierthresh 
         // check if query patch moved more than >padval from starting location -> most likely outlier
         ||                  
         pc->pt_iter[0] < cpt->tmp_lb  || pc->pt_iter[1] < cpt->tmp_lb ||    

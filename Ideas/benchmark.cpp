@@ -141,8 +141,10 @@ static void calculateStats( Mat errors, Mat mask = Mat(), bool display_images = 
 	R_vec.push_back(R*100);
         printf("R%.1f: %.2f%%\n", R_thresholds[i], R * 100);
     }
+    if(display_images){
     plt::scatter(R_thresholds_vec,R_vec,3);
     plt::show();
+    }
  
     //AX stats
     double max_value;
@@ -187,7 +189,14 @@ static Mat flowToDisplay(const Mat flow)
     cvtColor(hsv, rgb, COLOR_HSV2BGR);
     return rgb;
 }
-
+static void flowToOut(const Mat flow)
+{
+    Mat flow_split[2];
+    split(flow, flow_split);
+    cout<<"Mat u ="<<endl<<endl<<flow_split[0]<<endl;
+    cout<<"Mat v ="<<endl<<endl<<flow_split[1]<<endl;
+    return ;
+}
 //  gt_path calc_path 
 int main( int argc, char** argv )
 {
@@ -219,7 +228,7 @@ int main( int argc, char** argv )
         return 0;
     }
     cv::ocl::setUseOpenCL(useGpu);
-    printf("OpenCL Enabled: %u\n", useGpu && cv::ocl::haveOpenCL());
+    //printf("OpenCL Enabled: %u\n", useGpu && cv::ocl::haveOpenCL());
 
     Mat_<Point2f> flow, ground_truth;
     Mat computed_errors;
@@ -230,6 +239,7 @@ int main( int argc, char** argv )
     if(display_images)
     {
         Mat flow_image = flowToDisplay(flow);
+	//flowToOut(flow);
         namedWindow( "Computed flow", WINDOW_AUTOSIZE );
         imshow( "Computed flow", flow_image );
     }
@@ -341,6 +351,7 @@ int main( int argc, char** argv )
 
         printf("Using %s error measure\n", error_measure.c_str());
         calculateStats(computed_errors, mask, display_images);
+        //printf("EOF");
 
     }
     if(display_images) // wait for the user to see all the images

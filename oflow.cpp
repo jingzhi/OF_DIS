@@ -171,6 +171,8 @@ namespace OFC
   vector<OFC::PatGridClass*> grid_bw(op.noscales); // grid for backward OF computation, only needed if 'usefbcon' is set to 1.
   vector<float*> flow_fw(op.noscales);
   vector<float*> flow_bw(op.noscales);
+  vector<float*> var_fw(op.noscales);
+  vector<float*> var_bw(op.noscales);
   cpl.resize(op.noscales);
   cpr.resize(op.noscales);
   for (int sl=op.sc_f; sl>=op.sc_l; --sl) 
@@ -196,6 +198,7 @@ namespace OFC
     
     flow_fw[i]   = new float[op.nop * cpl[i].width * cpl[i].height]; 
     grid_fw[i]   = new OFC::PatGridClass(&(cpl[i]), &(cpr[i]), &op);
+    var_fw[i]   = new float[op.nop * cpl[i].width * cpl[i].height]; 
    
     if (op.usefbcon) // for merging forward and backward flow 
     {
@@ -205,7 +208,9 @@ namespace OFC
       // Make grids known to each other, necessary for AggregateFlowDense();
       grid_fw[i]->SetComplGrid( grid_bw[i] );
       grid_bw[i]->SetComplGrid( grid_fw[i] ); 
+      var_bw[i]   = new float[op.nop * cpl[i].width * cpl[i].height]; 
     }
+
   }
   
   
@@ -302,10 +307,10 @@ namespace OFC
     if (sl == op.sc_l)
       tmp_ptr = outflow;
     
-    grid_fw[ii]->AggregateFlowDense(tmp_ptr);
+    grid_fw[ii]->AggregateFlowDense(tmp_ptr,var_fw[ii]);
     
     if (op.usefbcon && sl > op.sc_l )  // skip at last scale, backward flow no longer needed
-      grid_bw[ii]->AggregateFlowDense(flow_bw[ii]);
+      grid_bw[ii]->AggregateFlowDense(flow_bw[ii],var_bw[ii]);
       
     
     // Timing, Densification
@@ -321,17 +326,17 @@ namespace OFC
 
     // Variational refinement, (Step 5 in Algorithm 1 of paper)
     for(int i=0;i<1;i++){
-    //for(int i=0;i<15;i++){
+    //for(int i=0;i<5;i++){
     if (op.usetvref)
     {
       OFC::VarRefClass varref_fw(im_ao[sl], im_ao_dx[sl], im_ao_dy[sl], 
                                 im_bo[sl], im_bo_dx[sl], im_bo_dy[sl]
-                                ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr);
+                                ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr,var_fw[ii]);
       
       if (op.usefbcon  && sl > op.sc_l )    // skip at last scale, backward flow no longer needed
           OFC::VarRefClass varref_bw(im_bo[sl], im_bo_dx[sl], im_bo_dy[sl], 
                                     im_ao[sl], im_ao_dx[sl], im_ao_dy[sl]
-                                    ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii]);
+                                    ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii],var_bw[ii]);
     }
     }
     
@@ -525,12 +530,12 @@ namespace OFC
       {
         OFC::VarRefClass varref_fw(im_ao[sl], im_ao_dx[sl], im_ao_dy[sl], 
                                   im_bo[sl], im_bo_dx[sl], im_bo_dy[sl]
-                                  ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr);
+                                  ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr,var_fw[ii]);
         
         if (op.usefbcon  && sl > op.sc_l )    // skip at last scale, backward flow no longer needed
             OFC::VarRefClass varref_bw(im_bo[sl], im_bo_dx[sl], im_bo_dy[sl], 
                                       im_ao[sl], im_ao_dx[sl], im_ao_dy[sl]
-                                      ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii]);
+                                      ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii],var_bw[ii]);
       }
     }
     Mat tmp_flow(cpl[ii].height,cpl[ii].width,CV_32FC2, tmp_ptr);
@@ -543,15 +548,16 @@ namespace OFC
       {
         OFC::VarRefClass varref_fw(im_ao[sl], im_ao_dx[sl], im_ao_dy[sl], 
                                   im_bo[sl], im_bo_dx[sl], im_bo_dy[sl]
-                                  ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr);
+                                  ,&(cpl[ii]), &(cpr[ii]), &op, tmp_ptr,var_fw[ii]);
         
         if (op.usefbcon  && sl > op.sc_l )    // skip at last scale, backward flow no longer needed
             OFC::VarRefClass varref_bw(im_bo[sl], im_bo_dx[sl], im_bo_dy[sl], 
                                       im_ao[sl], im_ao_dx[sl], im_ao_dy[sl]
-                                      ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii]);
+                                      ,&(cpr[ii]), &(cpl[ii]), &op, flow_bw[ii],var_bw[ii]);
       }
     }
     }
+ 
 
 //     if (op.verbosity==3) // Display displacement result of this scale // needed for verbosity >= 3, DISVISUAL
 //     {
