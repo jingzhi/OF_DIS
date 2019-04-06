@@ -73,16 +73,22 @@ namespace OFC
   //alllocate new aligned img mem
   for (int i = 0; i < noparam; ++i )
     flow_sep[i] = image_new(cpt->width,cpt->height);
+                              //image->stride = ( (width+3) / 4 ) * 4;//multiple of 4
   
   //initialise mem content with flow content from densification (hold in flowout)
-  for (int iy = 0; iy < cpt->height; ++iy)
+  for (int iy = 0; iy < cpt->height; ++iy){
     for (int ix = 0; ix < cpt->width; ++ix)
     {
       int i  = iy * cpt->width          + ix;
       int is = iy * flow_sep[0]->stride + ix;
-      for (int j = 0; j < noparam; ++j)
+      for (int j = 0; j < noparam; ++j){
         flow_sep[j]->c1[is] = flowout[i*noparam + j];
-    }
+	//printf("i:%d,is:%d \n",i,is);
+	//printf("flowout_in[i*noparam+j]:%f \n",flowout[i*noparam + j]);
+       }
+      }
+  }
+  
 
   // copy image data into FV structs
   #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)    
@@ -98,23 +104,39 @@ namespace OFC
   copyimage(im_ao_in, im_ao);
   copyimage(im_bo_in, im_bo);  
   
+  // Allocate alligned memory for variance 
+  image_t *var_aligned = image_new(cpt->width,cpt->height); 
+  // Copy data to variance structure
+  for (int iy = 0; iy < cpt->height; ++iy)
+      for (int ix = 0; ix < cpt->width; ++ix)
+      {
+        int i  = iy * cpt->width          + ix;
+        int is = iy * flow_sep[0]->stride + ix;
+        var_aligned->c1[is] = var_in[2*i]+var_in[2*i+1];
+	//printf("i:%d,is:%d \n",i,is);
+	//printf("var_u:%f,var_v:%f \n",var_in[2*i],var_in[2*i+1]);
+      }
+  
   // Call solver
   #if (SELECTMODE==1)
-  RefLevelOF(flow_sep[0], flow_sep[1], im_ao, im_bo,var_in);
+  RefLevelOF(flow_sep[0], flow_sep[1], im_ao, im_bo,var_aligned);
   #else
   RefLevelDE(flow_sep[0], im_ao, im_bo);
   #endif  
   
   // Copy flow result back
-  for (int iy = 0; iy < cpt->height; ++iy)
-    for (int ix = 0; ix < cpt->width; ++ix)
-    {
+
+  for (int iy = 0; iy < cpt->height; ++iy){
+    for (int ix = 0; ix < cpt->width; ++ix){
       int i  = iy * cpt->width          + ix;
       int is = iy * flow_sep[0]->stride + ix;
-      for (int j = 0; j < noparam; ++j)
+      for (int j = 0; j < noparam; ++j){
         flowout[i*noparam + j] = flow_sep[j]->c1[is];
+	//printf("i:%d,is:%d \n",i,is);
+	//printf("flowout_out[i*noparam+j]:%f \n",flowout[i*noparam + j]);
+      }
     }
-
+  }
   // free FV structs
   for (int i = 0; i < noparam; ++i )
     image_delete(flow_sep[i]);
@@ -167,9 +189,9 @@ void VarRefClass::copyimage(const float* img, color_image_t * img_t)
  
 
 #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)
-void VarRefClass::RefLevelOF(image_t *wx, image_t *wy, const image_t *im1, const image_t *im2,const float* var_in)
+void VarRefClass::RefLevelOF(image_t *wx, image_t *wy, const image_t *im1, const image_t *im2,const image_t *var_in)
 #else
-void VarRefClass::RefLevelOF(image_t *wx, image_t *wy, const color_image_t *im1, const color_image_t *im2,const float* var_in)
+void VarRefClass::RefLevelOF(image_t *wx, image_t *wy, const color_image_t *im1, const color_image_t *im2,const image_t *var_in)
 #endif
 {
     int i_inner_iteration;

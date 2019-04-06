@@ -51,7 +51,7 @@ private:
   void RefLevelDE(image_t *wx, const image_t *im1, const image_t *im2);
   #else // 3-Color RGB image
   void copyimage(const float* img, color_image_t * img_t);
-  void RefLevelOF(image_t *wx, image_t *wy, const color_image_t *im1, const color_image_t *im2,const float * var_in);
+  void RefLevelOF(image_t *wx, image_t *wy, const color_image_t *im1, const color_image_t *im2,const image_t * var_in);
   void RefLevelDE(image_t *wx, const color_image_t *im1, const color_image_t *im2);    
   #endif
   

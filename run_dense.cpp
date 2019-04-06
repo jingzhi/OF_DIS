@@ -41,7 +41,15 @@ int display_caption(cv::Mat dst, char* caption )
    if( c >= 0 ) { return -1; }
    return 0;
  }
-//
+// mat to cout
+static void flowToOut(const Mat flow)
+{
+    Mat flow_split[2];
+    split(flow, flow_split);
+    cout<<"Mat u ="<<endl<<endl<<flow_split[0]<<endl;
+    cout<<"Mat v ="<<endl<<endl<<flow_split[1]<<endl;
+    return ;
+}
 // Save a Depth/OF/SF as .flo file
 void SaveFlowFile(cv::Mat& img, const char* filename)
 {
@@ -278,8 +286,8 @@ int main( int argc, char** argv )
     usefbcon = 0; patnorm = 1; costfct = 0; 
     //alpha: smoothness
     tv_alpha = 10.0; tv_gamma = 10.0; tv_delta = 5.0;
-    tv_innerit = 1; tv_solverit = 10; tv_sor = 1.6;
-    verbosity = 4; // Default: Plot detailed timings
+    tv_innerit = 1; tv_solverit = 3; tv_sor = 1.6;
+    verbosity = 2; // Default: Plot detailed timings
         
     int fratio = 5; // For automatic selection of coarsest scale: (1/fratio) * width = maximum expected motion magnitude in image. Set lower to restrict search space.
     
@@ -305,24 +313,25 @@ int main( int argc, char** argv )
         usetvref = 1; 
         break;
       case 4:
-	cout<<"CASE4"<<endl;
-        patchsz = 12; poverl = 0.75; 
+        patchsz = 8; poverl = 0.75; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
+        tv_innerit = 1; tv_solverit = 3; tv_sor = 1.6;
         usetvref = 1; 
         break;        
       case 5:
 	cout<<"CASE5"<<endl;
 	usefbcon = 0;
         patchsz = 8; poverl = 0.75; 
-        //lv_f = 1;
-	lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
-        lv_l = 0; maxiter = 128; miniter =128;
+        lv_f = 2;
+	//lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
+        lv_l = lv_f -1; 
+	maxiter = 128; miniter =128;
         //lv_l = 0; maxiter = 256; miniter =256;
 	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
-        usetvref = 1; 
+        usetvref = 0; 
         tv_alpha = 10.0; tv_gamma = 10.0; tv_delta = 5.0;
-        tv_innerit = 5; tv_solverit =20; tv_sor = 1.6;// SOR omega
+        tv_innerit = 20; tv_solverit =10; tv_sor = 1.6;// SOR omega
 	break;
       case 2:
 	cout<<"CASE2"<<endl;
@@ -395,7 +404,6 @@ int main( int argc, char** argv )
   
   //  *** Generate scale pyramides
   img_ao_mat.convertTo(img_ao_fmat, CV_32F); // convert to float
-  imshow("before CV_32F",img_ao_mat);
   img_bo_mat.convertTo(img_bo_fmat, CV_32F);
   
   const float* img_ao_pyr[lv_f+1];
@@ -415,6 +423,14 @@ int main( int argc, char** argv )
   ConstructImgPyramide(img_ao_fmat, img_ao_fmat_pyr, img_ao_dx_fmat_pyr, img_ao_dy_fmat_pyr, img_ao_pyr, img_ao_dx_pyr, img_ao_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
   ConstructImgPyramide(img_bo_fmat, img_bo_fmat_pyr, img_bo_dx_fmat_pyr, img_bo_dy_fmat_pyr, img_bo_pyr, img_bo_dx_pyr, img_bo_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
 
+  //for(int i =lv_l; i <= lv_f; i++){
+  //        cout<<"trial "<<"pyramid ao"+ to_string(i)<<endl;
+  //      Mat tmp=img_ao_fmat_pyr[i].clone();
+  //      tmp.convertTo(tmp, CV_8U);
+  //      namedWindow( "pyramid ao"+ to_string(i), WINDOW_AUTOSIZE );
+  //      imshow( "pyramid ao"+ to_string(i), tmp ); 
+  //}
+  //      waitKey(0);
   // Timing, image gradients and pyramid
   if (verbosity > 1)
   {
@@ -476,6 +492,7 @@ int main( int argc, char** argv )
   
   
   // *** Resize to original scale, if not run to finest level
+  //flowToOut(flowout);
   if (lv_l != 0)
   {
     flowout *= sc_fct;

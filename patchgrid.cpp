@@ -289,87 +289,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
       }
     }
   }
-    if(true||cpt->width == 1024){
-	    float conflict_cnt=0;
-    for (int i =0;i<cpt->width;i++){
-	    for(int j =0;j<cpt->height;j++){
-	        int index=j*cpt->width+i;
-		//cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-		//
-                Size sz;
-		sz.height=all_flow[index].size();
-		sz.width=1;
-		Mat all_u(sz,CV_32FC1);
-	        Mat all_v(sz,CV_32FC1); 
-		for(unsigned f=0;f<all_flow[index].size();f++){
-			//cout<<"\t"<<all_flow[index][f]<<endl;
-			all_u.at<float>(f,0)=all_flow[index][f].x;
-			all_v.at<float>(f,0)=all_flow[index][f].y;
-		}
-		double min_u, max_u, min_v, max_v;
-		Mat mean_u, std_u, mean_v, std_v;
-		Point min_u_loc,max_u_loc,min_v_loc,max_v_loc;
-		minMaxLoc(all_u,&min_u,&max_u,&min_u_loc,&max_u_loc);
-		minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
-		vector<Mat> merge_vec={all_u,all_v};
-	        Mat merged_flow;
-		merge(merge_vec,merged_flow);
-		//cout<<"u:"<<all_u<<endl;
-		//cout<<"v:"<<all_v<<endl;
-		//cout<<"merged = "<<endl<<endl<<merged_flow<<endl;
-		Mat hist;
-	        double mode;
-		Point mode_loc;
-		//int histSize[]={(int)max_u-(int)min_u+1,(int)max_v-(int)min_v+1};
-		//float u_range[]={(float)min_u,(float)max_u+1};
-		//float v_range[]={(float)min_v,(float)max_v+1};
-		int histSize[]={320,320};
-		float u_range[]={floor(min_u),ceil(max_u)};
-		float v_range[]={floor(min_v),ceil(max_v)};
-		const float* histRange[]={u_range, v_range};
-		int channels[]={0,1};
-                //calcHist(&merged_flow,1,channels,Mat(),hist,2,histSize,histRange,true,false);
-		//minMaxLoc(hist,0,&mode,0,&mode_loc);
-
-		float mode_u, mode_v;
-		mode_u=((u_range[1]-u_range[0])/320)*mode_loc.y+u_range[0];
-		mode_v=((v_range[1]-v_range[0])/320)*mode_loc.x+v_range[0];
-		meanStdDev(all_u,mean_u,std_u);
-		meanStdDev(all_v,mean_v,std_v);
-		//cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
-		//cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
-		//cout<<"hist = "<<endl<<endl<<hist<<endl;
-		//cout<<"mode:"<<mode<<"; location:"<<mode_loc<<endl;
-
-		if((max_u-min_u > 5 && (max_u-mean_u.at<double>(0,0)>3 || mean_u.at<double>(0,0)-min_u>3)) || (max_v-min_v >5 && (max_v-mean_v.at<double>(0,0)>3 || mean_v.at<double>(0,0)-min_v>3))){
-                    point_conflict_flag[index]=1;   
-		    conflict_cnt+=1;
-		    //cout<<"Conflict at location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-		    //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
-		    //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
-
-		    for(unsigned f=0;f<all_flow[index].size();f++){
-		    	//cout<<"\t"<<all_flow[index][f]<<endl;
-		    }
-                    varout[2*index]   = (float) std_u.at<double>(0,0)*(float) std_u.at<double>(0,0);
-                    varout[2*index+1] = (float) std_v.at<double>(0,0)*(float) std_v.at<double>(0,0);
-		    //if(varout[2*index]>2 || varout[2*index]>2){
-		    //cout<<"var u:"<<varout[2*index]  <<endl;
-		    //cout<<"var v:"<<varout[2*index+1]<<endl;
-                    flowout[2*index]   =  rand()/RAND_MAX;
-                    flowout[2*index+1] =  rand()/RAND_MAX;
-		    //}
-		}
-                //cout<<"org u"<<flowout[2*index]<<",org v:"<<flowout[2*index+1]<<endl;
-		//cout<<"mode u:"<<mode_u<<", mode v:"<<mode_v<<endl;
-		//cout<<"mean u:"<<mode_u<<", mean v:"<<mode_v<<endl;
-                //flowout[2*index]   = (float) mean_u.val[0];
-                //flowout[2*index+1] = (float) mean_v.val[0];
-	    }
-    }
-    //cout<<"no. of conflicting px: "<<conflict_cnt<<", "<<conflict_cnt/(cpt->width*cpt->height)<<" of total px."<<endl;
-    }
-   
+ 
   
   // if complementary (forward-backward merging) is given, integrate negative backward flow as well
   if (cg)
@@ -491,7 +411,94 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
       }
     }
   }
-  
+  if(true || cpt->width == 1024){
+	    float conflict_cnt=0;
+    for (int j =0;j<cpt->height;j++){
+	    for(int i =0;i<cpt->width;i++){
+	        int index=j*cpt->width+i;
+		//cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+		//
+                Size sz;
+		sz.height=all_flow[index].size();
+		sz.width=1;
+		Mat all_u(sz,CV_32FC1);
+	        Mat all_v(sz,CV_32FC1); 
+		for(unsigned f=0;f<all_flow[index].size();f++){
+			//cout<<"\t"<<all_flow[index][f]<<endl;
+			all_u.at<float>(f,0)=all_flow[index][f].x / cpt->sc_fct;
+			all_v.at<float>(f,0)=all_flow[index][f].y / cpt->sc_fct;
+		}
+		double min_u, max_u, min_v, max_v;
+		Mat mean_u, std_u, mean_v, std_v;
+		Point min_u_loc,max_u_loc,min_v_loc,max_v_loc;
+		minMaxLoc(all_u,&min_u,&max_u,&min_u_loc,&max_u_loc);
+		minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
+		vector<Mat> merge_vec={all_u,all_v};
+	        Mat merged_flow;
+		merge(merge_vec,merged_flow);
+		//cout<<"u:"<<all_u<<endl;
+		//cout<<"v:"<<all_v<<endl;
+		//cout<<"merged = "<<endl<<endl<<merged_flow<<endl;
+		Mat hist;
+	        double mode;
+		Point mode_loc;
+		//int histSize[]={(int)max_u-(int)min_u+1,(int)max_v-(int)min_v+1};
+		//float u_range[]={(float)min_u,(float)max_u+1};
+		//float v_range[]={(float)min_v,(float)max_v+1};
+		int histSize[]={320,320};
+		float u_range[]={floor(min_u),ceil(max_u)};
+		float v_range[]={floor(min_v),ceil(max_v)};
+		const float* histRange[]={u_range, v_range};
+		int channels[]={0,1};
+                //calcHist(&merged_flow,1,channels,Mat(),hist,2,histSize,histRange,true,false);
+		//minMaxLoc(hist,0,&mode,0,&mode_loc);
+
+		float mode_u, mode_v;
+		mode_u=((u_range[1]-u_range[0])/320)*mode_loc.y+u_range[0];
+		mode_v=((v_range[1]-v_range[0])/320)*mode_loc.x+v_range[0];
+		meanStdDev(all_u,mean_u,std_u);
+		meanStdDev(all_v,mean_v,std_v);
+		//cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
+		//cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+		//cout<<"mode:"<<mode<<"; location:"<<mode_loc<<endl;
+
+		if((float) std_u.at<double>(0,0)>5 || (float) std_v.at<double>(0,0) >5){
+		    //cout<<"Conflict at location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+		    //cout<<"u:"<<all_u<<endl;
+		    //cout<<"v:"<<all_v<<endl;
+                    //flowout[2*index]   = 0;//(0.5*(double) rand()/(double) RAND_MAX+0.75);
+                    //flowout[2*index+1] = 0;//(0.5*(double) rand()/(double) RAND_MAX+0.75);
+                   //if(cpt->width == 1024){
+                   // flowout[2*index]   = 0;
+                   // flowout[2*index+1] = 0;
+		   // }
+		}
+		//if(false||max_u-min_u > 8 || max_v-min_v > 8 ){
+		if((max_u-min_u > 8 && (max_u-mean_u.at<double>(0,0)>3 || mean_u.at<double>(0,0)-min_u>5)) || (max_v-min_v >8 && (max_v-mean_v.at<double>(0,0)>5 || mean_v.at<double>(0,0)-min_v>5))){
+                    point_conflict_flag[index]=1;   
+		    conflict_cnt+=1;
+		    //cout<<"Conflict at location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+		    //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
+		    //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+                    varout[2*index]   = (float) std_u.at<double>(0,0)*(float) std_u.at<double>(0,0);
+                    varout[2*index+1] = (float) std_v.at<double>(0,0)*(float) std_v.at<double>(0,0);
+		    //if(varout[2*index]>2 || varout[2*index]>2){
+		    //cout<<"var u:"<<varout[2*index]  <<endl;
+		    //cout<<"var v:"<<varout[2*index+1]<<endl;
+                   //if(cpt->width == 1024){
+                    //flowout[2*index]   = (0.5*(double) rand()/(double) RAND_MAX+0.75);
+                    //flowout[2*index+1] = (0.5*(double) rand()/(double) RAND_MAX+0.75);
+		   //}
+		    //}
+		}
+                //cout<<"org u"<<flowout[2*index]<<",org v:"<<flowout[2*index+1]<<endl;
+		//cout<<"mode u:"<<mode_u<<", mode v:"<<mode_v<<endl;
+		//cout<<"mean u:"<<mode_u<<", mean v:"<<mode_v<<endl;
+	    }
+    }
+    //cout<<"no. of conflicting px: "<<conflict_cnt<<", "<<conflict_cnt/(cpt->width*cpt->height)<<" of total px."<<endl;
+    }
+    
   delete[] we;
 }
 

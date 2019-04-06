@@ -307,9 +307,9 @@ void compute_data_and_match(image_t *a11, image_t *a12, image_t *a22, image_t *b
    a11 a12 a22 represents the 2x2 diagonal matrix, b1 and b2 the right hand side
    other (color) images are input */
 #if (SELECTCHANNEL==1 | SELECTCHANNEL==2)  // use single band image_delete
-void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t *b2, image_t *mask, image_t *wx, image_t *wy, image_t *du, image_t *dv, image_t *uu, image_t *vv, image_t *Ix, image_t *Iy, image_t *Iz, image_t *Ixx, image_t *Ixy, image_t *Iyy, image_t *Ixz, image_t *Iyz, const float half_delta_over3, const float half_beta, const float half_gamma_over3,const float* var_in)
+void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t *b2, image_t *mask, image_t *wx, image_t *wy, image_t *du, image_t *dv, image_t *uu, image_t *vv, image_t *Ix, image_t *Iy, image_t *Iz, image_t *Ixx, image_t *Ixy, image_t *Iyy, image_t *Ixz, image_t *Iyz, const float half_delta_over3, const float half_beta, const float half_gamma_over3,const image_t *var_in)
 #else
-void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t *b2, image_t *mask, image_t *wx, image_t *wy, image_t *du, image_t *dv, image_t *uu, image_t *vv, color_image_t *Ix, color_image_t *Iy, color_image_t *Iz, color_image_t *Ixx, color_image_t *Ixy, color_image_t *Iyy, color_image_t *Ixz, color_image_t *Iyz, const float half_delta_over3, const float half_beta, const float half_gamma_over3,const float* var_in)
+void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t *b2, image_t *mask, image_t *wx, image_t *wy, image_t *du, image_t *dv, image_t *uu, image_t *vv, color_image_t *Ix, color_image_t *Iy, color_image_t *Iz, color_image_t *Ixx, color_image_t *Ixy, color_image_t *Iyy, color_image_t *Ixz, color_image_t *Iyz, const float half_delta_over3, const float half_beta, const float half_gamma_over3,const image_t *var_in)
 #endif
 {
     const v4sf dnorm = {datanorm, datanorm, datanorm, datanorm};
@@ -346,25 +346,53 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
 	v4sf tmp3, tmp4, tmp5, tmp6, n3, n4, n5, n6;
 	#endif
         // dpsi color
-        float trial_drop_out[4];//(rand()/RAND_MAX)>0.01;
-	int j;
-	for(j=0;j<4;j++){
-        printf("height:%d, 2*i*j: %d \n",uu->height,i*j*2);
-	    if(var_in[2*(i*j)]!=0 || var_in[2*(i*j)+1]!=0){
-	        trial_drop_out[j]=0.5;
-                //printf("var_in_u:%f,; var_in_v: %f \n",var_in[2*j*i],var_in[2*j*i+1]);
-	    }
-	    else{
-	        trial_drop_out[j]=0.001;//(rand()/RAND_MAX)>0.001;
-	        if((rand()/RAND_MAX)>0.0001){
-	          trial_drop_out[j]=1;//(rand()/RAND_MAX)>0.001;
-		};
-	    }
-        }
+        float delta_drop_out[4]={1.0f,1.0f,1.0f,1.0f};//(rand()/RAND_MAX)>0.01;
+        float gamma_drop_out[4]={1.0f,1.0f,1.0f,1.0f};//(rand()/RAND_MAX)>0.01;
+        //printf("i:%d,; imod4: %d \n",i,i%4);
+	
+	//if(uu->height < 400){
+	//    int j;
+	//    for(j=0;j<4;j++){
+	//    delta_drop_out[j]=1;//(rand()/RAND_MAX)>0.001;
+	//    delta_drop_out[j]=1;//(rand()/RAND_MAX)>0.001;
+	//    }
+	//}
+	if(uu->height > 400){
+	    int j;
+	    for(j=0;j<4;j++){
+	        if(var_in->c1[i*4+j]>0 ){
 
-        v4sf hdover3 = {trial_drop_out[0]*half_delta_over3,trial_drop_out[1]*half_delta_over3,trial_drop_out[2]*half_delta_over3,trial_drop_out[3]*half_delta_over3};
-        v4sf hgover3 = {trial_drop_out[0]*half_gamma_over3,trial_drop_out[1]*half_gamma_over3,trial_drop_out[2]*half_gamma_over3,trial_drop_out[3]*half_gamma_over3};
-        if(half_delta_over3 && trial_drop_out !=0){
+	    	//printf("var:%f\n",var_in->c1[i*4+j]);
+	            if((double) rand()/ (double) RAND_MAX > 0.01){
+	              delta_drop_out[j]=0.1;//(rand()/RAND_MAX)>0.001;
+	            //};
+	            //if((double) rand()/ (double) RAND_MAX > 0.01){
+	              gamma_drop_out[j]=0.1;//(rand()/RAND_MAX)>0.001;
+	            };
+	        }
+	        else{
+	            if((double) rand()/ (double) RAND_MAX < 0.00){
+	              delta_drop_out[j]=0.5;//(rand()/RAND_MAX)>0.001;
+	            //};
+	            //if((double) rand()/ (double) RAND_MAX <0.05){
+	              gamma_drop_out[j]=0.5;//(rand()/RAND_MAX)>0.001;
+	            }
+		    else{
+	              delta_drop_out[j]=2;//(rand()/RAND_MAX)>0.001;
+	            //};
+	            //if((double) rand()/ (double) RAND_MAX > 0.01){
+	              gamma_drop_out[j]=2;//(rand()/RAND_MAX)>0.001;
+		    }
+	        }
+	    }
+	}
+        
+
+        v4sf hdover3 = {delta_drop_out[0]*half_delta_over3,delta_drop_out[1]*half_delta_over3,delta_drop_out[2]*half_delta_over3,delta_drop_out[3]*half_delta_over3};
+        v4sf hgover3 = {gamma_drop_out[0]*half_gamma_over3,gamma_drop_out[1]*half_gamma_over3,gamma_drop_out[2]*half_gamma_over3,gamma_drop_out[3]*half_gamma_over3};
+        //printf("i:%d,; hdover3: %f,%f,%f,%f \n",i,hdover3[0],hdover3[1],hdover3[2],hdover3[3]);
+        //printf("i:%d,; hgover3: %f,%f,%f,%f \n",i,hgover3[0],hgover3[1],hgover3[2],hgover3[3]);
+        if(half_delta_over3){
             tmp  = *iz1p + (*ix1p)*(*dup) + (*iy1p)*(*dvp);
             n1 = (*ix1p) * (*ix1p) + (*iy1p) * (*iy1p) + dnorm;
             #if (SELECTCHANNEL==3)

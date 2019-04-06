@@ -188,8 +188,8 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
     pc->delta_p = pc->Hes.llt().solve(pc->delta_p); // solve linear system
     //Ax=b, solve for x = A.llt().solve(b)
     
-    pc->p_iter -= std::pow(0.999,floor(pc->cnt/2))*pc->delta_p*1.2; // update flow vector
-    //pc->p_iter -= pc->delta_p; // update flow vector
+    //pc->p_iter -= std::pow(0.999,floor(pc->cnt/2))*pc->delta_p*1.2; // update flow vector
+    pc->p_iter -= pc->delta_p; // update flow vector
     
     #if (SELECTMODE==2) // if stereo depth
     if (cpt->camlr==0)
@@ -202,7 +202,7 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
     paramtopt();  //pc->pt_iter = pt_ref + pc->p_iter;    
       
     // check if patch(es) moved too far from starting location, if yes, stop iteration and reset to starting location
-    if (false||(pc->pt_st - pc->pt_iter).norm() > 10//op->outlierthresh 
+    if (false//||(pc->pt_st - pc->pt_iter).norm() > op->outlierthresh 
         // check if query patch moved more than >padval from starting location -> most likely outlier
         ||                  
         pc->pt_iter[0] < cpt->tmp_lb  || pc->pt_iter[1] < cpt->tmp_lb ||    
@@ -214,7 +214,14 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
       pc->hasconverged=1;
       pc->hasoptstarted=1;
     }
-        
+     if (false||(pc->pt_st - pc->pt_iter).norm() > op->outlierthresh) 
+    {
+      Eigen::Vector2f  perturb ((double) 0*rand()/(double) RAND_MAX,(double) 0*rand()/(double) RAND_MAX );
+      pc->p_iter = pc->p_in + perturb; // reset
+      paramtopt(); 
+      pc->hasconverged=1;
+      pc->hasoptstarted=1;
+    }   
     OptimizeComputeErrImg();
   }
 }

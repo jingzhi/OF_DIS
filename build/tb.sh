@@ -4,6 +4,7 @@ param_config="5"
 if [ "$2" = "" ];
 then
 imgFolder="alley_1/"
+#imgFolder="cave_2/"
 else
 imgFolder=$2'/'
 fi
