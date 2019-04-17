@@ -142,6 +142,7 @@ void PatClass::OptimizeStart(const Eigen::Matrix<float, 1, 1> p_in_arg)
     pc->hasconverged=1;
     pc->pdiff = tmp;
     pc->hasoptstarted=1;
+    pc->invalid = true;
   }
   else
   {

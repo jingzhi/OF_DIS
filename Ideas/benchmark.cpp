@@ -142,8 +142,8 @@ static void calculateStats( Mat errors, Mat mask = Mat(), bool display_images = 
         printf("R%.1f: %.2f%%\n", R_thresholds[i], R * 100);
     }
     if(display_images){
-    plt::scatter(R_thresholds_vec,R_vec,3);
-    plt::show();
+    //plt::scatter(R_thresholds_vec,R_vec,3);
+    //plt::show();
     }
  
     //AX stats
@@ -326,6 +326,7 @@ int main( int argc, char** argv )
             namedWindow( "Mask region", WINDOW_AUTOSIZE );
             imshow( "Mask region", mask );
             Mat flow_image = flowToDisplay(ground_truth);
+	    //flowToOut(ground_truth);
             namedWindow( "Ground Truth flow", WINDOW_AUTOSIZE );
             imshow( "Ground Truth flow", flow_image );
         }

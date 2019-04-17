@@ -385,12 +385,14 @@ int main( int argc, char** argv )
   if (div>0) padw = scfct - div;
   div = sz.height % scfct;
   if (div>0) padh = scfct - div;          
+  cout<<"padw:"<<padw<<",padh:"<<padh<<endl;
   if (padh>0 || padw>0)
   {
     copyMakeBorder(img_ao_mat,img_ao_mat,floor((float)padh/2.0f),ceil((float)padh/2.0f),floor((float)padw/2.0f),ceil((float)padw/2.0f),cv::BORDER_REPLICATE);
     copyMakeBorder(img_bo_mat,img_bo_mat,floor((float)padh/2.0f),ceil((float)padh/2.0f),floor((float)padw/2.0f),ceil((float)padw/2.0f),cv::BORDER_REPLICATE);
   }
   sz = img_ao_mat.size();  // padded image size, ensures divisibility by 2 on all scales (except last)
+  cout<<"sz:"<<sz<<endl;
   
   // Timing, image loading
   if (verbosity > 1)
@@ -425,14 +427,14 @@ int main( int argc, char** argv )
   ConstructImgPyramide(img_ao_fmat, img_ao_fmat_pyr, img_ao_dx_fmat_pyr, img_ao_dy_fmat_pyr, img_ao_pyr, img_ao_dx_pyr, img_ao_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
   ConstructImgPyramide(img_bo_fmat, img_bo_fmat_pyr, img_bo_dx_fmat_pyr, img_bo_dy_fmat_pyr, img_bo_pyr, img_bo_dx_pyr, img_bo_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
 
-  //for(int i =lv_l; i <= lv_f; i++){
-  //        cout<<"trial "<<"pyramid ao"+ to_string(i)<<endl;
-  //      Mat tmp=img_ao_fmat_pyr[i].clone();
-  //      tmp.convertTo(tmp, CV_8U);
-  //      namedWindow( "pyramid ao"+ to_string(i), WINDOW_AUTOSIZE );
-  //      imshow( "pyramid ao"+ to_string(i), tmp ); 
-  //}
-  //      waitKey(0);
+  for(int i =lv_l; i <= lv_f; i++){
+          cout<<"trial "<<"pyramid ao"+ to_string(i)<<endl;
+        Mat tmp=img_ao_fmat_pyr[i].clone();
+        tmp.convertTo(tmp, CV_8U);
+        namedWindow( "pyramid ao"+ to_string(i), WINDOW_AUTOSIZE );
+        imshow( "pyramid ao"+ to_string(i), tmp ); 
+  }
+        waitKey(0);
   // Timing, image gradients and pyramid
   if (verbosity > 1)
   {
