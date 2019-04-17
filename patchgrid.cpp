@@ -215,6 +215,14 @@ void PatGridClass::InitializeFromCoarserOF(const float * flow_prev)
   }
 }
 
+float normal_pdf(float x, float m, float s)
+{
+    static const float inv_sqrt_2pi = 0.3989422804014327;
+    float a = (x - m) / s;
+
+    return inv_sqrt_2pi / s * std::exp(-0.5f * a * a);
+}
+
 void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 {
   float* we = new float[cpt->width * cpt->height];
@@ -455,8 +463,16 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 		    minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
 		    meanStdDev(all_u,mean_u,std_u);
 		    meanStdDev(all_v,mean_v,std_v);
-		    //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
-		    //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+	    //if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
+	    //        cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+	    //        cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
+	    //        cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
+	    //        cout<<"u:"<<all_u<<endl;
+	    //        cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
+	    //        cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+	    //        cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
+	    //        cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
+	    //}
 		    u_lb[index]=flowout[2*index]   - 1 * (float) std_u.at<double>(0,0);
 		    u_ub[index]=flowout[2*index]   + 1 * (float) std_u.at<double>(0,0);
 		    v_lb[index]=flowout[2*index+1] - 1 * (float) std_v.at<double>(0,0);
@@ -478,51 +494,47 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 		//}
 	    }
     }
+    // bilateral param
+    int k_size = 9;
+    int half_k=floor(9/2);
+    float sigma=1;
+    float mu=0
+
+    // row-wise bilateral
     for (int j =0;j<cpt->height;j++){
+	//left to right
         for(int i =0;i<cpt->width;i++){
+	    float smoothed=0;
+	    float weight=0;
+	    int p=i+half_k;
             int index=j*cpt->width+i;
-	    if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
-               //flowout[2*index]   = 0;
-               //flowout[2*index+1] = 0;
-	       //cout<<"x:"<<i<<",y:"<<j<<endl;
-	       cout<<u_lb[index]<<","<<flowout[2*index]<<","<<u_ub[index]<<";"<<endl;
+	    flow
+            //u		    
+	    for(int k=-half_k;k=half_k;k++){
+                int q=p+k;
+		float G_spatial=normal_pdf(k,mu,sigma);
+		float G_value=normal_pdf(flowout[2*index],mu,sigma);
+		float G_std;
+		if(varout[2*index]>0.25){
+		    G_std=normal_pdf(100,mu,sigma);
+		}
+		else{
+	            G_std=normal_pdf(varout[2*index],mu,sigma);
+		}
+	    
 	    }
-                //if(all_flow[index].size()<=8){
-                //    varout[2*index]   = 1;
-                //    varout[2*index+1] = 1;
-                //     flowout[2*index]   = 0;
-                //     flowout[2*index+1] = 0;
-                //}
-                //flowout[2*index]   = 0;//(0.5*(double) rand()/(double) RAND_MAX+0.75);
-                //flowout[2*index+1] = 0;//(0.5*(double) rand()/(double) RAND_MAX+0.75);
-               //if(cpt->width == 1024){
-               // flowout[2*index]   = 0;
-               // flowout[2*index+1] = 0;
-               // }
-            //if(false||max_u-min_u >1 || max_v-min_v > 1){
-            //if((max_u-min_u > 8 && (max_u-mean_u.at<double>(0,0)>3 || mean_u.at<double>(0,0)-min_u>5)) || (max_v-min_v >8 && (max_v-mean_v.at<double>(0,0)>5 || mean_v.at<double>(0,0)-min_v>5))){
-             //   conflict_cnt+=1;
-                //flowout[2*index]   = 0;
-                //flowout[2*index+1] = 0;
-                //cout<<"Conflict at location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-                //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
-                //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
-                //varout[2*index]   = (float) std_u.at<double>(0,0)*(float) std_u.at<double>(0,0);
-                //varout[2*index+1] = (float) std_v.at<double>(0,0)*(float) std_v.at<double>(0,0);
-                //if(varout[2*index]>2 || varout[2*index]>2){
-                //cout<<"var u:"<<varout[2*index]  <<endl;
-                //cout<<"var v:"<<varout[2*index+1]<<endl;
-               //if(cpt->width == 1024){
-                //flowout[2*index]   = (0.5*(double) rand()/(double) RAND_MAX+0.75);
-                //flowout[2*index+1] = (0.5*(double) rand()/(double) RAND_MAX+0.75);
-               //}
-                //}
-            //}
-            //cout<<"org u"<<flowout[2*index]<<",org v:"<<flowout[2*index+1]<<endl;
-            //cout<<"mode u:"<<mode_u<<", mode v:"<<mode_v<<endl;
-            //cout<<"mean u:"<<mode_u<<", mean v:"<<mode_v<<endl;
+	    //v
+
         }
+	//right to left
+	smoothed=0;
+	weight=0;
+	for(int i = cpt->width-1;i=0;i--){
+	    int index=j*cpt->width+i;
+	}
      }
+
+    // col-wise bilateral
     //cout<<"no. of conflicting px: "<<conflict_cnt<<", "<<conflict_cnt/(cpt->width*cpt->height)<<" of total px."<<endl;
   }
     
@@ -530,5 +542,4 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 }
 
 }
-
 

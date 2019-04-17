@@ -331,7 +331,7 @@ int main( int argc, char** argv )
 	maxiter = 128; miniter =128;
         //lv_l = 0; maxiter = 256; miniter =256;
 	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
-        usetvref = 1; 
+        usetvref = 0; 
         tv_alpha = 2.0; tv_gamma = 10.0; tv_delta = 5.0;
         tv_innerit = 20; tv_solverit =10; tv_sor = 1.6;// SOR omega
 	break;
