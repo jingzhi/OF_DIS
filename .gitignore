@@ -1,4 +1,12 @@
-build/
+build/CMakeFiles/
+build/run_OF_RGB
 Ideas/build/
 Ideas/CMakeFiles/
 
+*.swp
+*.swo
+*.flo
+*.csv
+*CMakeCache.txt
+*.cmake
+*.log
