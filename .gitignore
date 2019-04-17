@@ -1,2 +1,4 @@
-Ideas/CMakeFiles/*
-build*
+build/
+Ideas/build/
+Ideas/CMakeFiles/
+
