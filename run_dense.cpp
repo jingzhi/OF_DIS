@@ -265,6 +265,8 @@ int main( int argc, char** argv )
   #endif
   img_ao_mat = cv::imread(imgfile_ao, incoltype);   // Read the file
   img_bo_mat = cv::imread(imgfile_bo, incoltype);   // Read the file    
+  //cv::cvtColor(img_ao_mat, img_ao_mat, cv::COLOR_RGB2Lab);
+  //cv::cvtColor(img_bo_mat, img_bo_mat, cv::COLOR_RGB2Lab);
   cv::Mat img_ao_fmat, img_bo_fmat;
   cv::Size sz = img_ao_mat.size();
   int width_org = sz.width;   // unpadded original image size
@@ -325,12 +327,12 @@ int main( int argc, char** argv )
         patchsz = 8; poverl = 0.75; 
         lv_f = 2;
 	//lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
-        lv_l = lv_f -1; 
+        lv_l = lv_f -0; 
 	maxiter = 128; miniter =128;
         //lv_l = 0; maxiter = 256; miniter =256;
 	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
-        usetvref = 0; 
-        tv_alpha = 10.0; tv_gamma = 10.0; tv_delta = 5.0;
+        usetvref = 1; 
+        tv_alpha = 2.0; tv_gamma = 10.0; tv_delta = 5.0;
         tv_innerit = 20; tv_solverit =10; tv_sor = 1.6;// SOR omega
 	break;
       case 2:

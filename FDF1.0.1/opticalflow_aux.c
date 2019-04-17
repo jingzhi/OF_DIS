@@ -357,7 +357,7 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
 	//    delta_drop_out[j]=1;//(rand()/RAND_MAX)>0.001;
 	//    }
 	//}
-	if(uu->height > 400){
+	if(uu->height > 0){
 	    int j;
 	    for(j=0;j<4;j++){
 	        if(var_in->c1[i*4+j]>0 ){
@@ -371,18 +371,18 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
 	            };
 	        }
 	        else{
-	            if((double) rand()/ (double) RAND_MAX < 0.00){
-	              delta_drop_out[j]=0.5;//(rand()/RAND_MAX)>0.001;
-	            //};
-	            //if((double) rand()/ (double) RAND_MAX <0.05){
-	              gamma_drop_out[j]=0.5;//(rand()/RAND_MAX)>0.001;
-	            }
-		    else{
-	              delta_drop_out[j]=2;//(rand()/RAND_MAX)>0.001;
-	            //};
-	            //if((double) rand()/ (double) RAND_MAX > 0.01){
-	              gamma_drop_out[j]=2;//(rand()/RAND_MAX)>0.001;
-		    }
+	           if((double) rand()/ (double) RAND_MAX > 0.00){
+	             delta_drop_out[j]=0.5;//(rand()/RAND_MAX)>0.001;
+	           //};
+	           //if((double) rand()/ (double) RAND_MAX <0.05){
+	             gamma_drop_out[j]=0.5;//(rand()/RAND_MAX)>0.001;
+	           }
+		    //else{
+	            //  delta_drop_out[j]=2;//(rand()/RAND_MAX)>0.001;
+	            ////};
+	            ////if((double) rand()/ (double) RAND_MAX > 0.01){
+	            //  gamma_drop_out[j]=2;//(rand()/RAND_MAX)>0.001;
+		    //}
 	        }
 	    }
 	}

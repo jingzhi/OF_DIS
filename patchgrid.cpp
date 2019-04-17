@@ -233,7 +233,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
   for (int ip = 0; ip < nopatches; ++ip)
   {       
     
-    if (pat[ip]->IsValid())
+    if (false||pat[ip]->IsValid())
     {
       #if (SELECTMODE==1)
       const Eigen::Vector2f*            fl = pat[ip]->GetParam(); // flow displacement of this patch
