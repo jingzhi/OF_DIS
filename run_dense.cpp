@@ -327,13 +327,13 @@ int main( int argc, char** argv )
         patchsz = 8; poverl = 0.75; 
         lv_f = 2;
 	//lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
-        lv_l = lv_f -0; 
+        lv_l = lv_f -2; 
 	maxiter = 128; miniter =128;
         //lv_l = 0; maxiter = 256; miniter =256;
 	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
         usetvref = 0; 
         tv_alpha = 2.0; tv_gamma = 10.0; tv_delta = 5.0;
-        tv_innerit = 20; tv_solverit =10; tv_sor = 1.6;// SOR omega
+        tv_innerit = 1; tv_solverit =3; tv_sor = 1.6;// SOR omega
 	break;
       case 2:
 	cout<<"CASE2"<<endl;
@@ -427,14 +427,14 @@ int main( int argc, char** argv )
   ConstructImgPyramide(img_ao_fmat, img_ao_fmat_pyr, img_ao_dx_fmat_pyr, img_ao_dy_fmat_pyr, img_ao_pyr, img_ao_dx_pyr, img_ao_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
   ConstructImgPyramide(img_bo_fmat, img_bo_fmat_pyr, img_bo_dx_fmat_pyr, img_bo_dy_fmat_pyr, img_bo_pyr, img_bo_dx_pyr, img_bo_dy_pyr, lv_f, lv_l, rpyrtype, 1, patchsz, padw, padh);
 
-  for(int i =lv_l; i <= lv_f; i++){
-          cout<<"trial "<<"pyramid ao"+ to_string(i)<<endl;
-        Mat tmp=img_ao_fmat_pyr[i].clone();
-        tmp.convertTo(tmp, CV_8U);
-        namedWindow( "pyramid ao"+ to_string(i), WINDOW_AUTOSIZE );
-        imshow( "pyramid ao"+ to_string(i), tmp ); 
-  }
-        waitKey(0);
+  //for(int i =lv_l; i <= lv_f; i++){
+  //        cout<<"trial "<<"pyramid ao"+ to_string(i)<<endl;
+  //      Mat tmp=img_ao_fmat_pyr[i].clone();
+  //      tmp.convertTo(tmp, CV_8U);
+  //      namedWindow( "pyramid ao"+ to_string(i), WINDOW_AUTOSIZE );
+  //      imshow( "pyramid ao"+ to_string(i), tmp ); 
+  //}
+  //      waitKey(0);
   // Timing, image gradients and pyramid
   if (verbosity > 1)
   {

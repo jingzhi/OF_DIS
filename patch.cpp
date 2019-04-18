@@ -68,7 +68,6 @@ void PatClass::InitializePatch(Eigen::Map<const Eigen::MatrixXf> * im_ao_in,
 
   getPatchStaticNNGrad(im_ao->data(), im_ao_dx->data(), im_ao_dy->data(), &pt_ref, &tmp, &dxx_tmp, &dyy_tmp);
 
-  variance = (tmp.array() - tmp.mean()).square().sum()/(tmp.size()-1);
   ComputeHessian();
 }
 
@@ -227,6 +226,7 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
     }   
     OptimizeComputeErrImg();
   }
+  variance = (pc->pweight.array() - pc->pweight.mean()).square().sum()/(pc->pweight.size()-1);
 }
 
 inline void PatClass::paramtopt()
@@ -243,10 +243,10 @@ void PatClass::LossComputeErrorImage(Eigen::Matrix<float, Eigen::Dynamic, 1>* pa
 				     const Eigen::Matrix<float, Eigen::Dynamic, 1>* patin, //pdiff 
 				     const Eigen::Matrix<float, Eigen::Dynamic, 1>*  tmpin)//tempin
 {
-  v4sf * pd = (v4sf*) patdest->data(),//pdiff
+  v4sf * pd = (v4sf*) patdest->data(),//pdiff ->OUTPUT= pa-te
        * pa = (v4sf*) patin->data(), //pdiff 
        * te = (v4sf*) tmpin->data(),//temp
-       * pw = (v4sf*) wdest->data();//pweight
+       * pw = (v4sf*) wdest->data();//pweight ->output =abs(pdiff)
 
   if (op->costfct==0) // L2 cost function
   {

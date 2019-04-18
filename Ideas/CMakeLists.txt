@@ -18,3 +18,7 @@ target_link_libraries(grad ${OpenCV_LIBS} ${PYTHON_LIBRARIES})
 add_executable(errormap errormap.cpp )
 target_include_directories(errormap PRIVATE ${PYTHON_INCLUDE_DIRS})
 target_link_libraries(errormap ${OpenCV_LIBS} ${PYTHON_LIBRARIES})
+
+add_executable(evalall evalall.cpp )
+target_include_directories(evalall PRIVATE ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(evalall ${OpenCV_LIBS} ${PYTHON_LIBRARIES})

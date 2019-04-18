@@ -16,8 +16,8 @@ else
 imgName=$1
 fi
 
-imgPath='/mnt/hgfs/MPI-Sintel-complete/training/final/'$imgFolder
-gtPath='/mnt/hgfs/MPI-Sintel-complete/training/flow/'$imgFolder
+imgPath='/scratch_net/unclemax/lijingz/MasterThesis/MPI-Sintel-complete/training/final/'$imgFolder
+gtPath='/scratch_net/unclemax/lijingz/MasterThesis/MPI-Sintel-complete/training/flow/'$imgFolder
 
 imgs=($(ls $imgPath))
 echo Running in $imgFolder... 

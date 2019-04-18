@@ -232,7 +232,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
   float* v_ub = new float[cpt->width * cpt->height];
   int array_size=cpt->width * cpt->height;
   //vector<Point>* all_flow = new vector<Point> [array_size];
-  vector<Point2f>* all_flow = new vector<Point2f> [array_size];
+  vector<Point3f>* all_flow = new vector<Point3f> [array_size];
   float* point_valid_flag = new float[cpt->width * cpt->height];
 
   memset(flowout, 0, sizeof(float) * (op->nop * cpt->width * cpt->height) );
@@ -242,7 +242,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
   memset(u_ub,      0, sizeof(float) * (          cpt->width * cpt->height) );
   memset(v_lb,      0, sizeof(float) * (          cpt->width * cpt->height) );
   memset(v_ub,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  memset(point_valid_flag,      0, sizeof(float) * (          cpt->width * cpt->height) );
+  memset(point_valid_flag,      1, sizeof(float) * (          cpt->width * cpt->height) );
   #ifdef USE_PARALLEL_ON_FLOWAGGR // Using this enables OpenMP on flow aggregation. This can lead to race conditions. Experimentally we found that the result degrades only marginally. However, for our experiments we did not enable this.
     #pragma omp parallel for schedule(static)  
   #endif
@@ -283,8 +283,8 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
             float absw = (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                   absw+= (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                   absw+= (float)(std::max(op->minerrval  ,*pweight));
-            //absw = 1.0f / (patch_homo_weight);
-            absw = 1.0f / absw;
+            absw = 1.0f / (patch_homo_weight);
+            //absw = 1.0f / absw;
             #endif
               
             flnew = (*fl) * absw;
@@ -292,7 +292,8 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 	    //if((*fl)[0]!=0 && (*fl)[1]!=0){
 		    //cout<<"fl[0]"<<fl[0]<<endl;
 		    //cout<<"fl[1]"<<fl[1]<<endl;
-                all_flow[i].push_back(Point2f((*fl)[0],(*fl)[1]));
+                all_flow[i].push_back(Point3f((*fl)[0],(*fl)[1],1.0f/absw));
+            //patch_error_std[i]=patch_homo_weight;
 	    //}
             #if (SELECTMODE==1)
             flowout[2*i]   += flnew[0];
@@ -438,20 +439,25 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 		sz.width=1;
 		Mat all_u(sz,CV_32FC1);
 	        Mat all_v(sz,CV_32FC1); 
+	        Mat all_error_std(sz,CV_32FC1); 
 		for(unsigned f=0;f<all_flow[index].size();f++){
 			//cout<<"\t"<<all_flow[index][f]<<endl;
 			all_u.at<float>(f,0)=all_flow[index][f].x / cpt->sc_fct;
 			all_v.at<float>(f,0)=all_flow[index][f].y / cpt->sc_fct;
+			all_error_std.at<float>(f,0)=all_flow[index][f].z ;
 		}
 		if(all_flow[index].size()==0){
                     point_valid_flag[index]=0;  
+		    float margin=3;
+                    varout[2*index]   = margin*margin;
+                    varout[2*index+1] = margin*margin;
 		} 
-		else if(all_flow[index].size()==1){
-		    float margin=2;
-		    u_lb[index]=flowout[2*index]   - 3 * margin;
-		    u_ub[index]=flowout[2*index]   + 3 * margin;
-		    v_lb[index]=flowout[2*index+1] - 3 * margin;
-		    v_ub[index]=flowout[2*index+1] + 3 * margin;
+		else if(all_flow[index].size()<=4){
+		    float margin=1;
+		    u_lb[index]=flowout[2*index]   - 1 * margin;
+		    u_ub[index]=flowout[2*index]   + 1 * margin;
+		    v_lb[index]=flowout[2*index+1] - 1 * margin;
+		    v_ub[index]=flowout[2*index+1] + 1 * margin;
                     varout[2*index]   = margin*margin;
                     varout[2*index+1] = margin*margin;
 		}
@@ -463,25 +469,27 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 		    minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
 		    meanStdDev(all_u,mean_u,std_u);
 		    meanStdDev(all_v,mean_v,std_v);
-	    //if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
-	    //        cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-	    //        cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
-	    //        cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
-	    //        cout<<"u:"<<all_u<<endl;
-	    //        cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
-	    //        cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
-	    //        cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
-	    //        cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
-	    //}
+	    if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
+	            //cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+	            //cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
+	            //cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
+		    //cout<<"patch error std:"<<endl<<all_error_std<<endl;
+	            //cout<<"u:"<<endl<<all_u<<endl;
+	            //cout<<"v:"<<endl<<all_v<<endl;
+	            //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
+	            //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
+	            //cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
+	            //cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
+	    }
 		    u_lb[index]=flowout[2*index]   - 1 * (float) std_u.at<double>(0,0);
 		    u_ub[index]=flowout[2*index]   + 1 * (float) std_u.at<double>(0,0);
 		    v_lb[index]=flowout[2*index+1] - 1 * (float) std_v.at<double>(0,0);
 		    v_ub[index]=flowout[2*index+1] + 1 * (float) std_v.at<double>(0,0);
-                    varout[2*index]   = (float) std_u.at<double>(0,0)*(float) std_u.at<double>(0,0);
-                    varout[2*index+1] = (float) std_v.at<double>(0,0)*(float) std_v.at<double>(0,0);
+                    varout[2*index]   = (float) std_u.at<double>(0,0);//*(float) std_u.at<double>(0,0);
+                    varout[2*index+1] = (float) std_v.at<double>(0,0);//*(float) std_v.at<double>(0,0);
 		}
 
-		//if((float) std_u.at<double>(0,0)>1.0 || (float) std_v.at<double>(0,0) >1.0){
+		//if((float) patch_error_std[index]>5.0){
 		//    //cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
 		//    //cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
 		//    //cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
@@ -495,46 +503,161 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 	    }
     }
     // bilateral param
-    int k_size = 9;
-    int half_k=floor(9/2);
+    int k_size = 4;
+    int half_k=4;
     float sigma=1;
-    float mu=0
-
+    float mu=0;
+    float thres=0.5;
+if(true){
     // row-wise bilateral
     for (int j =0;j<cpt->height;j++){
 	//left to right
-        for(int i =0;i<cpt->width;i++){
-	    float smoothed=0;
-	    float weight=0;
-	    int p=i+half_k;
-            int index=j*cpt->width+i;
-	    flow
-            //u		    
-	    for(int k=-half_k;k=half_k;k++){
-                int q=p+k;
+        for(int i =k_size;i<cpt->width-k_size;i++){
+	    float smoothed_u=0;
+	    float weight_u=0;
+	    float smoothed_v=0;
+	    float weight_v=0;
+            int index_p=j*cpt->width+i;
+	    for(int k=-half_k;k<=half_k;k++){
+                int index_q=index_p+k;
 		float G_spatial=normal_pdf(k,mu,sigma);
-		float G_value=normal_pdf(flowout[2*index],mu,sigma);
-		float G_std;
-		if(varout[2*index]>0.25){
-		    G_std=normal_pdf(100,mu,sigma);
+		//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
+		float G_std_u=1;
+		//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
+		float G_std_v=1;
+		if(varout[2*index_q]>thres){
+		    G_std_u=normal_pdf(10,mu,sigma);
 		}
 		else{
-	            G_std=normal_pdf(varout[2*index],mu,sigma);
+	            G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
 		}
-	    
+		if(varout[2*index_q+1]>thres){
+		    G_std_v=normal_pdf(10,mu,sigma);
+		}
+		else{
+	            G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+		}
+		weight_u += G_spatial*G_std_u;
+		weight_v += G_spatial*G_std_v;
+		smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
+		smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
 	    }
-	    //v
+	    flowout[2*index_p] =smoothed_u/weight_u;
+	    flowout[2*index_p+1] =smoothed_v/weight_v;
 
         }
 	//right to left
-	smoothed=0;
-	weight=0;
-	for(int i = cpt->width-1;i=0;i--){
-	    int index=j*cpt->width+i;
-	}
+	//for(int i = cpt->width-half_k-1;i>=half_k;i--){
+	//    float smoothed_u=0;
+	//    float weight_u=0;
+	//    float smoothed_v=0;
+	//    float weight_v=0;
+        //    int index_p=j*cpt->width+i;
+	//    for(int k=-half_k;k<=half_k;k++){
+        //        int index_q=index_p+k;
+	//	float G_spatial=normal_pdf(k,mu,sigma);
+	//	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
+	//	float G_std_u;
+	//	//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
+	//	float G_std_v;
+	//	if(varout[2*index_q]>thres){
+	//	    G_std_u=normal_pdf(10,mu,sigma);
+	//	}
+	//	else{
+	//            G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+	//	}
+	//	if(varout[2*index_q+1]>thres){
+	//	    G_std_v=normal_pdf(10,mu,sigma);
+	//	}
+	//	else{
+	//            G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+	//	}
+	//	weight_u += G_spatial*G_std_u;
+	//	weight_v += G_spatial*G_std_v;
+	//	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
+	//	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
+	//    }
+	//    flowout[2*index_p] =smoothed_u/weight_u;
+	//    flowout[2*index_p+1] =smoothed_v/weight_v;
+	//}
      }
 
     // col-wise bilateral
+    for (int j =k_size;j<cpt->width-k_size;j++){
+        //top to bottom
+        for(int i =0+half_k;i<cpt->height-half_k;i++){
+            float smoothed_u=0;
+            float weight_u=0;
+            float smoothed_v=0;
+            float weight_v=0;
+            int index_p=i*cpt->width+j;
+            for(int k=-half_k;k<=half_k;k++){
+                int index_q=index_p+k;
+        	float G_spatial=normal_pdf(k,mu,sigma);
+        	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
+        	float G_std_u;
+        	//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
+        	float G_std_v;
+        	if(varout[2*index_q]>thres){
+        	    G_std_u=normal_pdf(10,mu,sigma);
+        	}
+        	else{
+                    G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+        	}
+        	if(varout[2*index_q+1]>thres){
+        	    G_std_v=normal_pdf(10,mu,sigma);
+        	}
+        	else{
+                    G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+        	}
+        	weight_u += G_spatial*G_std_u;
+        	weight_v += G_spatial*G_std_v;
+        	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
+        	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
+            }
+            flowout[2*index_p] =smoothed_u/weight_u;
+            flowout[2*index_p+1] =smoothed_v/weight_v;
+
+        }
+        //bottom to top
+        //for(int i = cpt->height-half_k-1;i>=half_k;i--){
+        //    float smoothed_u=0;
+        //    float weight_u=0;
+        //    float smoothed_v=0;
+        //    float weight_v=0;
+        //    int index_p=i*cpt->width+j;
+        //    for(int k=-half_k;k<=half_k;k++){
+        //        int index_q=index_p+k;
+        //	float G_spatial=normal_pdf(k,mu,sigma);
+        //	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
+        //	float G_std_u;
+        //	//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
+        //	float G_std_v;
+        //	if(varout[2*index_q]>thres){
+        //	    G_std_u=normal_pdf(10,mu,sigma);
+        //	}
+        //	else{
+        //            G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+        //	}
+        //	if(varout[2*index_q+1]>thres){
+        //	    G_std_v=normal_pdf(10,mu,sigma);
+        //	}
+        //	else{
+        //            G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+        //	}
+        //	weight_u += G_spatial*G_std_u;
+        //	weight_v += G_spatial*G_std_v;
+        //	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
+        //	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
+        //    }
+        //    flowout[2*index_p] =smoothed_u/weight_u;
+        //    flowout[2*index_p+1] =smoothed_v/weight_v;
+
+
+        //}
+     }
+
+}
     //cout<<"no. of conflicting px: "<<conflict_cnt<<", "<<conflict_cnt/(cpt->width*cpt->height)<<" of total px."<<endl;
   }
     

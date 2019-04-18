@@ -309,22 +309,22 @@ namespace OFC
     
     grid_fw[ii]->AggregateFlowDense(tmp_ptr,var_fw[ii]);
     
-    cv::Mat tmpx(cpl[ii].height,cpl[ii].width,CV_32F);
-    cv::Mat tmpy(cpl[ii].height,cpl[ii].width,CV_32F);
-    for( int yj =0;yj<cpl[ii].height;yj++){
-        for( int xj =0;xj<cpl[ii].width;xj++){
-        	int index = yj*cpl[ii].width +xj;
-                tmpx.at<float>(yj,xj)=var_fw[ii][2*index];
-                tmpy.at<float>(yj,xj)=var_fw[ii][2*index+1];
-            }
-    }
-    tmpx= tmpx>0;//.convertTo(tmpx, CV_8U);
-    tmpy= tmpy>0;//.convertTo(tmpy, CV_8U);
-    cv::namedWindow("var_x",WINDOW_AUTOSIZE);
-    cv::imshow("var_x",tmpx);
-    cv::namedWindow("var_y",WINDOW_AUTOSIZE);
-    cv::imshow("var_y",tmpy);
-    cv::waitKey(0);
+    //cv::Mat tmpx(cpl[ii].height,cpl[ii].width,CV_32F);
+    //cv::Mat tmpy(cpl[ii].height,cpl[ii].width,CV_32F);
+    //for( int yj =0;yj<cpl[ii].height;yj++){
+    //    for( int xj =0;xj<cpl[ii].width;xj++){
+    //    	int index = yj*cpl[ii].width +xj;
+    //            tmpx.at<float>(yj,xj)=var_fw[ii][2*index];
+    //            tmpy.at<float>(yj,xj)=var_fw[ii][2*index+1];
+    //        }
+    //}
+    //tmpx= tmpx>0;//.convertTo(tmpx, CV_8U);
+    //tmpy= tmpy>0;//.convertTo(tmpy, CV_8U);
+    //cv::namedWindow("var_x",WINDOW_AUTOSIZE);
+    //cv::imshow("var_x",tmpx);
+    //cv::namedWindow("var_y",WINDOW_AUTOSIZE);
+    //cv::imshow("var_y",tmpy);
+    //cv::waitKey(0);
     if (op.usefbcon && sl > op.sc_l )  // skip at last scale, backward flow no longer needed
       grid_bw[ii]->AggregateFlowDense(flow_bw[ii],var_bw[ii]);
       
