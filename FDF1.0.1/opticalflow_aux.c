@@ -357,10 +357,10 @@ void compute_data(image_t *a11, image_t *a12, image_t *a22, image_t *b1, image_t
 	//    delta_drop_out[j]=1;//(rand()/RAND_MAX)>0.001;
 	//    }
 	//}
-	if(uu->height > 0){
+	if(uu->height < 1000000.0){
 	    int j;
 	    for(j=0;j<4;j++){
-	        if(var_in->c1[i*4+j]>0 ){
+	        if(var_in->c1[i*4+j]>1 ){
 
 	    	//printf("var:%f\n",var_in->c1[i*4+j]);
 	            if((double) rand()/ (double) RAND_MAX > 0.01){

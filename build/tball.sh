@@ -2,6 +2,7 @@
 param_config="5"
 folderPath='/scratch_net/unclemax/lijingz/MasterThesis/MPI-Sintel-complete/training/final/'
 folders=($(ls $folderPath))
+rm -f -r all_flo_out
 mkdir all_flo_out
 for ((i=0; i<${#folders[@]}; i++));do
         imgPath="$folderPath${folders[$i]}"

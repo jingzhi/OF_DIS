@@ -46,8 +46,10 @@ static Mat endpointError( const Mat_<Point2f>& flow1, const Mat_<Point2f>& flow2
             {
                 const Point2f diff = u1 - u2;
                 result.at<float>(i, j) = sqrt((float)diff.ddot(diff)); //distance
-            } else
+            } else{
                 result.at<float>(i, j) = std::numeric_limits<float>::quiet_NaN();
+				cout<<"invalid flow"<<endl;
+			}
         }
     }
     return result;

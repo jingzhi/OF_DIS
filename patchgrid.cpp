@@ -249,7 +249,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
   for (int ip = 0; ip < nopatches; ++ip)
   {       
     
-    if (false||pat[ip]->IsValid())
+    if (pat[ip]->IsValid())
     {
       #if (SELECTMODE==1)
       const Eigen::Vector2f*            fl = pat[ip]->GetParam(); // flow displacement of this patch
@@ -262,7 +262,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
       const float * pweight = pat[ip]->GetpWeightPtr(); // use image error as weight
       int lb = -op->p_samp_s/2;
       int ub = op->p_samp_s/2-1;
-      float patch_homo_weight=std::sqrt(pat[ip]->GetpVar());
+      float patch_homo_weight=(float) (std::max(std::sqrt(pat[ip]->GetpVar()),op->minerrval));
       
       for (int y = lb; y <= ub; ++y)
       {   
@@ -349,7 +349,6 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 
           int lb = -op->p_samp_s/2;
           int ub = op->p_samp_s/2-1;
-          float patch_homo_weight=std::sqrt(pat[ip]->GetpVar());
 
           
           for (int y = lb; y <= ub; ++y)
@@ -428,7 +427,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
       }
     }
   }
-  if(true || cpt->width == 1024){
+  if(false && cpt->width == 1024){
 	    float conflict_cnt=0;
     for (int j =0;j<cpt->height;j++){
 	    for(int i =0;i<cpt->width;i++){
@@ -469,7 +468,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 		    minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
 		    meanStdDev(all_u,mean_u,std_u);
 		    meanStdDev(all_v,mean_v,std_v);
-	    if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
+	    //if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
 	            //cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
 	            //cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
 	            //cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
@@ -480,7 +479,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 	            //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
 	            //cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
 	            //cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
-	    }
+	    //}
 		    u_lb[index]=flowout[2*index]   - 1 * (float) std_u.at<double>(0,0);
 		    u_ub[index]=flowout[2*index]   + 1 * (float) std_u.at<double>(0,0);
 		    v_lb[index]=flowout[2*index+1] - 1 * (float) std_v.at<double>(0,0);
@@ -508,7 +507,7 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
     float sigma=1;
     float mu=0;
     float thres=0.5;
-if(true){
+if(false){
     // row-wise bilateral
     for (int j =0;j<cpt->height;j++){
 	//left to right
@@ -526,23 +525,25 @@ if(true){
 		//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
 		float G_std_v=1;
 		if(varout[2*index_q]>thres){
-		    G_std_u=normal_pdf(10,mu,sigma);
+		    G_std_u=0.001;//normal_pdf(10,mu,sigma);
 		}
 		else{
-	            G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+	        G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
 		}
 		if(varout[2*index_q+1]>thres){
 		    G_std_v=normal_pdf(10,mu,sigma);
 		}
 		else{
-	            G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+	            G_std_v=0.001;//normal_pdf(varout[2*index_q+1],mu,sigma);
 		}
 		weight_u += G_spatial*G_std_u;
 		weight_v += G_spatial*G_std_v;
 		smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
 		smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
 	    }
+	    if(weight_u!=0)
 	    flowout[2*index_p] =smoothed_u/weight_u;
+	    if(weight_v!=0)
 	    flowout[2*index_p+1] =smoothed_v/weight_v;
 
         }
@@ -615,7 +616,9 @@ if(true){
         	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
         	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
             }
+	    if(weight_u!=0)
             flowout[2*index_p] =smoothed_u/weight_u;
+	    if(weight_v!=0)
             flowout[2*index_p+1] =smoothed_v/weight_v;
 
         }
