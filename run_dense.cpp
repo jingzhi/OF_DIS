@@ -301,14 +301,12 @@ int main( int argc, char** argv )
     switch (sel_oppoint)
     {
       case 1:
-	cout<<"CASE1"<<endl;
         patchsz = 8; poverl = 0.3; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-2,0); maxiter = 16; miniter = 16; 
         usetvref = 0; 
         break;
       case 3:
-	cout<<"CASE2"<<endl;
         patchsz = 12; poverl = 0.75; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-4,0); maxiter = 16; miniter = 16; 
@@ -322,23 +320,23 @@ int main( int argc, char** argv )
         usetvref = 1; 
         break;        
       case 5:
-	cout<<"CASE5"<<endl;
-	usefbcon = 0;
-        patchsz = 8; poverl = 0.75; 
+		//****Manual
+	    usefbcon = 0;
+        patchsz = 8; poverl = 0.5; 
         lv_f = 2;
-	//lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = lv_f -2; 
-	maxiter = 128; miniter =128;
-        //lv_l = 0; maxiter = 256; miniter =256;
-	//lv_l = std::max(lv_f-5,0); maxiter = 128; miniter = 128; 
-        usetvref = 0; 
+	    maxiter = 16; miniter =16;
+        usetvref = 1; 
         tv_alpha = 2.0; tv_gamma = 10.0; tv_delta = 5.0;
         tv_innerit = 1; tv_solverit =3; tv_sor = 1.6;// SOR omega
-	break;
+		//****OP 1
+        //patchsz = 8; poverl = 0; 
+        //lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
+        //lv_l = std::max(lv_f-2,0); maxiter = 16; miniter = 16; 
+        //usetvref = 0; 
+	  break;
       case 2:
-	cout<<"CASE2"<<endl;
       default:
-	cout<<"CASE default"<<endl;
         patchsz = 8; poverl = 0.4; 
         lv_f = AutoFirstScaleSelect(width_org, fratio, patchsz);
         lv_l = std::max(lv_f-2,0); maxiter = 12; miniter = 12; 

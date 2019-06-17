@@ -18,7 +18,7 @@ const String keys = "{help h usage ? |      | print this message   }"
         "{@algorithm     |      | [farneback, simpleflow, tvl1, deepflow, sparsetodenseflow, pcaflow, DISflow_ultrafast, DISflow_fast, DISflow_medium] }"
         "{@groundtruth   |      | path to the .flo file  (optional), Middlebury format }"
         "{m measure      |endpoint| error measure - [endpoint or angular] }"
-        "{r region       |all   | region to compute stats about [all, discontinuities, untextured, smalld] }"
+        "{r region       |all   | region to compute stats about [all, discontinuities, untextured, smalld,central] }"
         "{d display      |      | display additional info images (pauses program execution) }"
         "{g gpu          |      | use OpenCL}"
         "{prior          |      | path to a prior file for PCAFlow}";
@@ -180,6 +180,7 @@ static Mat flowToDisplay(const Mat flow)
     Mat hsv_split[3], hsv, rgb;
     split(flow, flow_split);
     cartToPolar(flow_split[0], flow_split[1], magnitude, angle, true);
+	threshold(magnitude,magnitude,1,0,2);
     normalize(magnitude, magnitude, 0, 1, NORM_MINMAX);
     //hue,saturation,color
     hsv_split[0] = angle; // already in degrees - no normalization needed
@@ -286,32 +287,59 @@ int main( int argc, char** argv )
             mask = gradient > threshold;
             dilate(mask, mask, Mat::ones(9, 9, CV_8U));
         }
-	else if(region == "smalld")
-	{
-                vector<Mat> truth_split;
-		Mat magnitude,angle;
-                split(ground_truth, truth_split);
-                cartToPolar(truth_split[0], truth_split[1], magnitude, angle, true);
-		mask = (magnitude <= 8);
-		valid_count=countNonZero(mask);
-		if (valid_count==0){
-                    float R_thresholds[] = { 0.f, 0.5f, 1.f, 2.f, 4.f, 8.f}; 
-                    vector<float> R_thresholds_vec = { 0.f, 0.5f, 1.f, 2.f, 4.f, 8.f};
-                    float A_thresholds[] = { 0.5f, 0.75f, 0.95f };
-                    int R_thresholds_count = sizeof(R_thresholds) / sizeof(float);
-                    int A_thresholds_count = sizeof(A_thresholds) / sizeof(float);
-                    printf("Using %s error measure\n", error_measure.c_str());
-                    printf("Average: %.2f\nStandard deviation: %.2f\n", 0, 0);
-                    for ( int i = 0; i < R_thresholds_count; ++i ){
-                        printf("R%.1f: %.2f%%\n", R_thresholds[i], 0 * 100);
-                        	}
-                    for ( int i = 0; i < A_thresholds_count; ++i ){
-                        printf("A%.2f: %.2f\n", A_thresholds[i], 0);
-                    }
-                    printf("Valid region: %d \n", valid_count);
-		}
-		//cout<<"GT mag ="<<endl<<endl<<magnitude;
-	}
+	    else if(region == "smalld")
+	    {
+                    vector<Mat> truth_split;
+	    	Mat magnitude,angle;
+                    split(ground_truth, truth_split);
+                    cartToPolar(truth_split[0], truth_split[1], magnitude, angle, true);
+            mask = Mat::zeros(ground_truth.size(), CV_8U) * 255;
+	    	mask = (magnitude <= 8);
+	    	valid_count=countNonZero(mask);
+	    	if (valid_count==0){
+                        float R_thresholds[] = { 0.f, 0.5f, 1.f, 2.f, 4.f, 8.f}; 
+                        vector<float> R_thresholds_vec = { 0.f, 0.5f, 1.f, 2.f, 4.f, 8.f};
+                        float A_thresholds[] = { 0.5f, 0.75f, 0.95f };
+                        int R_thresholds_count = sizeof(R_thresholds) / sizeof(float);
+                        int A_thresholds_count = sizeof(A_thresholds) / sizeof(float);
+                        printf("Using %s error measure\n", error_measure.c_str());
+                        printf("Average: %.2f\nStandard deviation: %.2f\n", 0, 0);
+                        for ( int i = 0; i < R_thresholds_count; ++i ){
+                            printf("R%.1f: %.2f%%\n", R_thresholds[i], 0 * 100);
+                            	}
+                        for ( int i = 0; i < A_thresholds_count; ++i ){
+                            printf("A%.2f: %.2f\n", A_thresholds[i], 0);
+                        }
+                        printf("Valid region: %d \n", valid_count);
+	    	}
+	    	//cout<<"GT mag ="<<endl<<endl<<magnitude;
+	    }
+		else if(region == "central")
+	    {
+            vector<Mat> truth_split;
+	    	Mat magnitude,angle;
+            split(ground_truth, truth_split);
+            cartToPolar(truth_split[0], truth_split[1], magnitude, angle, true);
+	    	mask = (magnitude <= 8);
+	    	valid_count=countNonZero(mask);
+	    	if (valid_count==0){
+                        float R_thresholds[] = { 0.f, 0.5f, 1.f, 2.f, 4.f, 8.f}; 
+                        vector<float> R_thresholds_vec = { 0.f, 0.5f, 1.f, 2.f, 4.f, 8.f};
+                        float A_thresholds[] = { 0.5f, 0.75f, 0.95f };
+                        int R_thresholds_count = sizeof(R_thresholds) / sizeof(float);
+                        int A_thresholds_count = sizeof(A_thresholds) / sizeof(float);
+                        printf("Using %s error measure\n", error_measure.c_str());
+                        printf("Average: %.2f\nStandard deviation: %.2f\n", 0, 0);
+                        for ( int i = 0; i < R_thresholds_count; ++i ){
+                            printf("R%.1f: %.2f%%\n", R_thresholds[i], 0 * 100);
+                            	}
+                        for ( int i = 0; i < A_thresholds_count; ++i ){
+                            printf("A%.2f: %.2f\n", A_thresholds[i], 0);
+                        }
+                        printf("Valid region: %d \n", valid_count);
+	    	}
+	    	//cout<<"GT mag ="<<endl<<endl<<magnitude;
+	    }
         else
         {
             printf("Invalid region selected! Available options: all, discontinuities, untextured");
@@ -346,10 +374,10 @@ int main( int argc, char** argv )
             imshow( "Error map", flow_image );
         }
 
-	if(region == "smalld" && valid_count !=0){
+	if(region == "smalld" && valid_count !=0 ||region=="all"){
            printf("Using %s error measure\n", error_measure.c_str());
            calculateStats(computed_errors, mask, display_images);
-	   valid_count=countNonZero(mask);
+	       valid_count=countNonZero(mask);
            printf("Valid region: %d \n", valid_count);
 	}
         //printf("EOF");

@@ -215,9 +215,9 @@ void PatClass::OptimizeIter(const Eigen::Matrix<float, 1, 1> p_in_arg, const boo
       pc->hasoptstarted=1;
       pc->invalid = true;
     }
-     if (false||(pc->pt_st - pc->pt_iter).norm() > op->outlierthresh) 
+     if (false||(pc->pt_st - pc->pt_iter).norm() > 10)//op->outlierthresh) 
     {
-      Eigen::Vector2f  perturb ((double) 0*rand()/(double) RAND_MAX,(double) 0*rand()/(double) RAND_MAX );
+      //Eigen::Vector2f  perturb ((double) 0*rand()/(double) RAND_MAX,(double) 0*rand()/(double) RAND_MAX );
       pc->p_iter = pc->p_in;// + perturb; // reset
       paramtopt(); 
       pc->hasconverged=1;

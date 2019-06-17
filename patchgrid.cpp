@@ -29,55 +29,55 @@ using namespace cv;
 
 namespace OFC
 {
+
+PatGridClass::PatGridClass(
+  const camparam* cpt_in,
+  const camparam* cpo_in,
+  const optparam* op_in)
+: 
+  cpt(cpt_in),
+  cpo(cpo_in),
+  op(op_in)
+{
+
+// Generate grid on current scale
+steps = op->steps;
+nopw = ceil( (float)cpt->width /  (float)steps );
+noph = ceil( (float)cpt->height / (float)steps );
+const int offsetw = floor((cpt->width - (nopw-1)*steps)/2);
+const int offseth = floor((cpt->height - (noph-1)*steps)/2);
+
+nopatches = nopw*noph;
+//std::vector<Eigen::Vector2f> pt_ref; // Midpoints for reference patches
+pt_ref.resize(nopatches);
+//std::vector<Eigen::Vector2f> p_init; // starting parameters for query patches
+p_init.resize(nopatches);
+//std::vector<OFC::PatClass*> pat; // Patch Objects
+pat.reserve(nopatches);
+
+im_ao_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
+im_ao_dx_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
+im_ao_dy_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
+
+im_bo_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
+im_bo_dx_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
+im_bo_dy_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
+
+int patchid=0;
+for (int x = 0; x < nopw; ++x)
+{
+  for (int y = 0; y < noph; ++y)
+  {
+    int i = x*noph + y;
+
+    pt_ref[i][0] = x * steps + offsetw;
+    pt_ref[i][1] = y * steps + offseth;
+    p_init[i].setZero();
     
-  PatGridClass::PatGridClass(
-    const camparam* cpt_in,
-    const camparam* cpo_in,
-    const optparam* op_in)
-  : 
-    cpt(cpt_in),
-    cpo(cpo_in),
-    op(op_in)
-  {
-
-  // Generate grid on current scale
-  steps = op->steps;
-  nopw = ceil( (float)cpt->width /  (float)steps );
-  noph = ceil( (float)cpt->height / (float)steps );
-  const int offsetw = floor((cpt->width - (nopw-1)*steps)/2);
-  const int offseth = floor((cpt->height - (noph-1)*steps)/2);
-
-  nopatches = nopw*noph;
-  //std::vector<Eigen::Vector2f> pt_ref; // Midpoints for reference patches
-  pt_ref.resize(nopatches);
-  //std::vector<Eigen::Vector2f> p_init; // starting parameters for query patches
-  p_init.resize(nopatches);
-  //std::vector<OFC::PatClass*> pat; // Patch Objects
-  pat.reserve(nopatches);
-  
-  im_ao_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
-  im_ao_dx_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
-  im_ao_dy_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
-
-  im_bo_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
-  im_bo_dx_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
-  im_bo_dy_eg = new Eigen::Map<const Eigen::MatrixXf>(nullptr,cpt->height,cpt->width);
-
-  int patchid=0;
-  for (int x = 0; x < nopw; ++x)
-  {
-    for (int y = 0; y < noph; ++y)
-    {
-      int i = x*noph + y;
-
-      pt_ref[i][0] = x * steps + offsetw;
-      pt_ref[i][1] = y * steps + offseth;
-      p_init[i].setZero();
-      
-      pat.push_back(new OFC::PatClass(cpt, cpo, op, patchid));    
-      patchid++;
-    }
+    pat.push_back(new OFC::PatClass(cpt, cpo, op, patchid));    
+    patchid++;
   }
+}
 }
 
 PatGridClass::~PatGridClass()
@@ -200,18 +200,49 @@ void PatGridClass::Optimize()
 void PatGridClass::InitializeFromCoarserOF(const float * flow_prev)
 {
   #pragma omp parallel for schedule(dynamic,10)
-  for (int ip = 0; ip < nopatches; ++ip)
-  {
-    int x = floor(pt_ref[ip][0] / 2); // better, but slower: use bil. interpolation here
-    int y = floor(pt_ref[ip][1] / 2); 
-    int i = y*(cpt->width/2) + x;
-    
-    #if (SELECTMODE==1)
-    p_init[ip](0) = flow_prev[2*i  ]*2;
-    p_init[ip](1) = flow_prev[2*i+1]*2;
-    #else
-    p_init[ip](0) = flow_prev[  i  ]*2;      
-    #endif
+	if(true){
+        Mat prev_u = Mat(cpt->height/2,cpt->width/2,CV_32F);
+        Mat prev_v = Mat(cpt->height/2,cpt->width/2,CV_32F);
+        Mat new_u = Mat(cpt->height,cpt->width,CV_32F);
+        Mat new_v = Mat(cpt->height,cpt->width,CV_32F);
+        for (int ip = 0; ip < (cpt->width/2)*(cpt->height/2); ++ip)
+        {
+          int x = ip%(cpt->width/2); 
+          int y = ip/(cpt->width/2);
+          #if (SELECTMODE==1)
+          prev_u.at<float>(y,x) = flow_prev[2*ip  ]*2;
+          prev_v.at<float>(y,x) = flow_prev[2*ip+1]*2;
+          #endif
+        }
+
+        resize(prev_u,new_u,new_u.size(),0,0,INTER_LINEAR);
+        resize(prev_v,new_v,new_v.size(),0,0,INTER_LINEAR);
+        for (int ip = 0; ip < nopatches; ++ip)
+        {
+          int x = floor(pt_ref[ip][0]); 
+          int y = floor(pt_ref[ip][1]); 
+          #if (SELECTMODE==1)
+          p_init[ip](0) = new_u.at<float>(y,x);
+          p_init[ip](1) = new_v.at<float>(y,x);
+          #endif
+        }
+
+	}else
+	{
+        for (int ip = 0; ip < nopatches; ++ip)
+        {
+          int x = floor(pt_ref[ip][0] / 2); // better, but slower: use bil. interpolation here
+          int y = floor(pt_ref[ip][1] / 2); 
+          int i = y*(cpt->width/2) + x;
+          //cout<<"(y,x): "<<y<<","<<x<<endl;
+          //cout<<"(i): "<<i<<endl;
+          #if (SELECTMODE==1)
+          p_init[ip](0) = flow_prev[2*i  ]*2;
+          p_init[ip](1) = flow_prev[2*i+1]*2;
+          #else
+          p_init[ip](0) = flow_prev[  i  ]*2;      
+          #endif
+        }
   }
 }
 
@@ -226,10 +257,10 @@ float normal_pdf(float x, float m, float s)
 void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
 {
   float* we = new float[cpt->width * cpt->height];
-  float* u_lb = new float[cpt->width * cpt->height];
-  float* u_ub = new float[cpt->width * cpt->height];
-  float* v_lb = new float[cpt->width * cpt->height];
-  float* v_ub = new float[cpt->width * cpt->height];
+  //float* u_lb = new float[cpt->width * cpt->height];
+  //float* u_ub = new float[cpt->width * cpt->height];
+  //float* v_lb = new float[cpt->width * cpt->height];
+  //float* v_ub = new float[cpt->width * cpt->height];
   int array_size=cpt->width * cpt->height;
   //vector<Point>* all_flow = new vector<Point> [array_size];
   vector<Point3f>* all_flow = new vector<Point3f> [array_size];
@@ -238,11 +269,11 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
   memset(flowout, 0, sizeof(float) * (op->nop * cpt->width * cpt->height) );
   memset(varout, 0, sizeof(float) * (op->nop * cpt->width * cpt->height) );
   memset(we,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  memset(u_lb,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  memset(u_ub,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  memset(v_lb,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  memset(v_ub,      0, sizeof(float) * (          cpt->width * cpt->height) );
-  memset(point_valid_flag,      1, sizeof(float) * (          cpt->width * cpt->height) );
+  //memset(u_lb,      0, sizeof(float) * (          cpt->width * cpt->height) );
+  //memset(u_ub,      0, sizeof(float) * (          cpt->width * cpt->height) );
+  //memset(v_lb,      0, sizeof(float) * (          cpt->width * cpt->height) );
+  //memset(v_ub,      0, sizeof(float) * (          cpt->width * cpt->height) );
+ // memset(point_valid_flag,      1, sizeof(float) * (          cpt->width * cpt->height) );
   #ifdef USE_PARALLEL_ON_FLOWAGGR // Using this enables OpenMP on flow aggregation. This can lead to race conditions. Experimentally we found that the result degrades only marginally. However, for our experiments we did not enable this.
     #pragma omp parallel for schedule(static)  
   #endif
@@ -283,18 +314,18 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
             float absw = (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                   absw+= (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                   absw+= (float)(std::max(op->minerrval  ,*pweight));
-            absw = 1.0f / (patch_homo_weight);
-            //absw = 1.0f / absw;
+            //absw = 1.0f / (patch_homo_weight);
+            absw = 1.0f / absw;
             #endif
               
             flnew = (*fl) * absw;
             we[i] += absw;
-	    //if((*fl)[0]!=0 && (*fl)[1]!=0){
+	        if((*fl)[0]!=0 && (*fl)[1]!=0){
 		    //cout<<"fl[0]"<<fl[0]<<endl;
 		    //cout<<"fl[1]"<<fl[1]<<endl;
-                all_flow[i].push_back(Point3f((*fl)[0],(*fl)[1],1.0f/absw));
+             all_flow[i].push_back(Point3f((*fl)[0],(*fl)[1],1.0f/absw));
             //patch_error_std[i]=patch_homo_weight;
-	    //}
+	        }
             #if (SELECTMODE==1)
             flowout[2*i]   += flnew[0];
             flowout[2*i+1] += flnew[1];
@@ -367,7 +398,6 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
                 float absw = (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                       absw+= (float)(std::max(op->minerrval  ,*pweight)); ++pweight;
                       absw+= (float)(std::max(op->minerrval  ,*pweight));
-                //absw = 1.0f / (absw + patch_homo_weight);
                 absw = 1.0f / absw;
                 #endif
               
@@ -427,210 +457,157 @@ void PatGridClass::AggregateFlowDense(float *flowout, float * varout) const
       }
     }
   }
-  if(false && cpt->width == 1024){
-	    float conflict_cnt=0;
-    for (int j =0;j<cpt->height;j++){
-	    for(int i =0;i<cpt->width;i++){
-	        int index=j*cpt->width+i;
-		//cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-                Size sz;
-		sz.height=all_flow[index].size();
-		sz.width=1;
-		Mat all_u(sz,CV_32FC1);
-	        Mat all_v(sz,CV_32FC1); 
-	        Mat all_error_std(sz,CV_32FC1); 
-		for(unsigned f=0;f<all_flow[index].size();f++){
-			//cout<<"\t"<<all_flow[index][f]<<endl;
-			all_u.at<float>(f,0)=all_flow[index][f].x / cpt->sc_fct;
-			all_v.at<float>(f,0)=all_flow[index][f].y / cpt->sc_fct;
-			all_error_std.at<float>(f,0)=all_flow[index][f].z ;
-		}
-		if(all_flow[index].size()==0){
-                    point_valid_flag[index]=0;  
-		    float margin=3;
-                    varout[2*index]   = margin*margin;
-                    varout[2*index+1] = margin*margin;
-		} 
-		else if(all_flow[index].size()<=4){
-		    float margin=1;
-		    u_lb[index]=flowout[2*index]   - 1 * margin;
-		    u_ub[index]=flowout[2*index]   + 1 * margin;
-		    v_lb[index]=flowout[2*index+1] - 1 * margin;
-		    v_ub[index]=flowout[2*index+1] + 1 * margin;
-                    varout[2*index]   = margin*margin;
-                    varout[2*index+1] = margin*margin;
-		}
-		else{
-		    double min_u, max_u, min_v, max_v;
-		    Mat mean_u, std_u, mean_v, std_v;
-		    Point min_u_loc,max_u_loc,min_v_loc,max_v_loc;
-		    minMaxLoc(all_u,&min_u,&max_u,&min_u_loc,&max_u_loc);
-		    minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
-		    meanStdDev(all_u,mean_u,std_u);
-		    meanStdDev(all_v,mean_v,std_v);
-	    //if(i==20){// && (varout[2*index]<0.25 && varout[2*index+1]<0.25)){
-	            //cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-	            //cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
-	            //cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
-		    //cout<<"patch error std:"<<endl<<all_error_std<<endl;
-	            //cout<<"u:"<<endl<<all_u<<endl;
-	            //cout<<"v:"<<endl<<all_v<<endl;
-	            //cout<<"max u:"<<max_u<<", min u:"<<min_u<<endl;
-	            //cout<<"max v:"<<max_v<<", min v:"<<min_v<<endl;
-	            //cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
-	            //cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
-	    //}
-		    u_lb[index]=flowout[2*index]   - 1 * (float) std_u.at<double>(0,0);
-		    u_ub[index]=flowout[2*index]   + 1 * (float) std_u.at<double>(0,0);
-		    v_lb[index]=flowout[2*index+1] - 1 * (float) std_v.at<double>(0,0);
-		    v_ub[index]=flowout[2*index+1] + 1 * (float) std_v.at<double>(0,0);
-                    varout[2*index]   = (float) std_u.at<double>(0,0);//*(float) std_u.at<double>(0,0);
-                    varout[2*index+1] = (float) std_v.at<double>(0,0);//*(float) std_v.at<double>(0,0);
-		}
+  delete[] we;
+//END of ORIGINAL flow
 
-		//if((float) patch_error_std[index]>5.0){
-		//    //cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
-		//    //cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
-		//    //cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
-		//    //cout<<"u:"<<all_u<<endl;
-		//    //cout<<"v:"<<all_v<<endl;
-		//    //cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
-		//    //cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
-                //    flowout[2*index]   = 0;
-                //    flowout[2*index+1] = 0;
-		//}
-	    }
-    }
+// pixel-wise std
+  if(true){
+      float conflict_cnt=0;
+	  //calculate pixel wise variance
+      for (int j =0;j<cpt->height;j++){
+          for(int i =0;i<cpt->width;i++){
+              int index=j*cpt->width+i;
+              Size sz;
+      	    sz.height=all_flow[index].size();
+      	    sz.width=1;
+      	    Mat all_u(sz,CV_32FC1);
+              Mat all_v(sz,CV_32FC1); 
+              Mat all_error_std(sz,CV_32FC1); 
+	  		//Obtain u v mat cube
+      	    for(unsigned f=0;f<all_flow[index].size();f++){
+      		    all_u.at<float>(f,0)=all_flow[index][f].x / cpt->sc_fct;
+      		    all_v.at<float>(f,0)=all_flow[index][f].y / cpt->sc_fct;
+      		    all_error_std.at<float>(f,0)=all_flow[index][f].z ;
+      	    }
+	  		//Calculate variance
+      	    if(all_flow[index].size()==0){//No valid candidate from inverse search
+                  point_valid_flag[index]=0;  
+      	        float margin=3;
+                  varout[2*index]   = margin;//*margin;
+                  varout[2*index+1] = margin;//*margin;
+      	    } 
+      	    else if(all_flow[index].size()<=2){//less than 5 valid candidates per pixel
+      	        float margin=1;
+      	        //u_lb[index]=flowout[2*index]   - 1 * margin;
+      	        //u_ub[index]=flowout[2*index]   + 1 * margin;
+      	        //v_lb[index]=flowout[2*index+1] - 1 * margin;
+      	        //v_ub[index]=flowout[2*index+1] + 1 * margin;
+                  varout[2*index]   = margin;//*margin;
+                  varout[2*index+1] = margin;//*margin;
+      	    }
+      	    else{
+      	        double min_u, max_u, min_v, max_v;
+      	        Mat mean_u, std_u, mean_v, std_v;
+      	        Point min_u_loc,max_u_loc,min_v_loc,max_v_loc;
+      	        minMaxLoc(all_u,&min_u,&max_u,&min_u_loc,&max_u_loc);
+      	        minMaxLoc(all_v,&min_v,&max_v,&min_v_loc,&max_v_loc);
+      	        meanStdDev(all_u,mean_u,std_u);
+      	        meanStdDev(all_v,mean_v,std_v);
+                  varout[2*index]   = (float) std_u.at<double>(0,0);//*(float) std_u.at<double>(0,0);
+                  varout[2*index+1] = (float) std_v.at<double>(0,0);//*(float) std_v.at<double>(0,0);
+      	    //u_lb[index]=flowout[2*index]   - 1 * (float) std_u.at<double>(0,0);
+      	    //u_ub[index]=flowout[2*index]   + 1 * (float) std_u.at<double>(0,0);
+      	    //v_lb[index]=flowout[2*index+1] - 1 * (float) std_v.at<double>(0,0);
+      	    //v_ub[index]=flowout[2*index+1] + 1 * (float) std_v.at<double>(0,0);
+	  		}
+      	    //if((float) patch_error_std[index]>5.0){
+      	    //    //cout<<"At location x="<<i<<",y="<<j<<", the number of flow candidates: "<<all_flow[index].size()<<endl;
+      	    //    //cout<<"std_u:"<<(float) std_u.at<double>(0,0)<<endl;
+      	    //    //cout<<"std_v:"<<(float) std_v.at<double>(0,0)<<endl;
+      	    //    //cout<<"u:"<<all_u<<endl;
+      	    //    //cout<<"v:"<<all_v<<endl;
+      	    //    //cout<<"decided u:"<<flowout[2*index]  / cpt->sc_fct<<endl;
+      	    //    //cout<<"decided v:"<<flowout[2*index+1]/ cpt->sc_fct<<endl;
+                      //    flowout[2*index]   = 0;
+                      //    flowout[2*index+1] = 0;
+      	    //}
+          }
+      }
+  }
+  //Getting raw value for bilinear interpolation
+   //Mat prev_u = Mat(noph,nopw,CV_32F);
+   //Mat prev_v = Mat(noph,nopw,CV_32F);
+   //Mat new_u = Mat(cpt->height,cpt->width,CV_32F);
+   //Mat new_v = Mat(cpt->height,cpt->width,CV_32F);
+   //for (int yi = 0; yi < noph; ++yi)
+   //{
+   //  for (int xi = 0; xi <nopw; ++xi)
+   //  { 
+   //    int i = xi*noph + yi;
+   //    int index_p=pt_ref[i][0]+pt_ref[i][1]*cpt->width;
+   //    prev_u.at<float>(yi,xi) = flowout[2*index_p  ];
+   //    prev_v.at<float>(yi,xi) = flowout[2*index_p+1];
+   //  }
+   //}
+   //for (int yi = 0; yi < noph; ++yi)
+   //{
+   //  for (int xi = 0; xi <nopw; ++xi)
+   //  { 
+   //    int i = xi*noph + yi;
+   //    int index_p=pt_ref[i][0]+pt_ref[i][1]*cpt->width ;//= y * steps + offseth;
+   //    prev_u.at<float>(yi,xi) = flowout[2*index_p  ];
+   //    prev_v.at<float>(yi,xi) = flowout[2*index_p+1];
+   //  }
+   //}
+   //resize(prev_u,new_u,new_u.size(),0,0,INTER_LINEAR);
+   //resize(prev_v,new_v,new_v.size(),0,0,INTER_LINEAR);
+
+
     // bilateral param
     int k_size = 4;
     int half_k=4;
     float sigma=1;
     float mu=0;
     float thres=0.5;
-if(false){
+    if(false){
     // row-wise bilateral
-    for (int j =0;j<cpt->height;j++){
-	//left to right
-        for(int i =k_size;i<cpt->width-k_size;i++){
-	    float smoothed_u=0;
-	    float weight_u=0;
-	    float smoothed_v=0;
-	    float weight_v=0;
-            int index_p=j*cpt->width+i;
-	    for(int k=-half_k;k<=half_k;k++){
-                int index_q=index_p+k;
-		float G_spatial=normal_pdf(k,mu,sigma);
-		//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
-		float G_std_u=1;
-		//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
-		float G_std_v=1;
-		if(varout[2*index_q]>thres){
-		    G_std_u=0.001;//normal_pdf(10,mu,sigma);
-		}
-		else{
-	        G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
-		}
-		if(varout[2*index_q+1]>thres){
-		    G_std_v=normal_pdf(10,mu,sigma);
-		}
-		else{
-	            G_std_v=0.001;//normal_pdf(varout[2*index_q+1],mu,sigma);
-		}
-		weight_u += G_spatial*G_std_u;
-		weight_v += G_spatial*G_std_v;
-		smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
-		smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
-	    }
-	    if(weight_u!=0)
-	    flowout[2*index_p] =smoothed_u/weight_u;
-	    if(weight_v!=0)
-	    flowout[2*index_p+1] =smoothed_v/weight_v;
-
-        }
-	//right to left
-	//for(int i = cpt->width-half_k-1;i>=half_k;i--){
-	//    float smoothed_u=0;
-	//    float weight_u=0;
-	//    float smoothed_v=0;
-	//    float weight_v=0;
-        //    int index_p=j*cpt->width+i;
-	//    for(int k=-half_k;k<=half_k;k++){
-        //        int index_q=index_p+k;
-	//	float G_spatial=normal_pdf(k,mu,sigma);
-	//	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
-	//	float G_std_u;
-	//	//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
-	//	float G_std_v;
-	//	if(varout[2*index_q]>thres){
-	//	    G_std_u=normal_pdf(10,mu,sigma);
-	//	}
-	//	else{
-	//            G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
-	//	}
-	//	if(varout[2*index_q+1]>thres){
-	//	    G_std_v=normal_pdf(10,mu,sigma);
-	//	}
-	//	else{
-	//            G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
-	//	}
-	//	weight_u += G_spatial*G_std_u;
-	//	weight_v += G_spatial*G_std_v;
-	//	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
-	//	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
-	//    }
-	//    flowout[2*index_p] =smoothed_u/weight_u;
-	//    flowout[2*index_p+1] =smoothed_v/weight_v;
-	//}
-     }
-
-    // col-wise bilateral
-    for (int j =k_size;j<cpt->width-k_size;j++){
-        //top to bottom
-        for(int i =0+half_k;i<cpt->height-half_k;i++){
+        for (int j =0;j<cpt->height;j++){
+        //left to right
+            for(int i =k_size;i<cpt->width-k_size;i++){
             float smoothed_u=0;
             float weight_u=0;
             float smoothed_v=0;
             float weight_v=0;
-            int index_p=i*cpt->width+j;
+                int index_p=j*cpt->width+i;
             for(int k=-half_k;k<=half_k;k++){
-                int index_q=index_p+k;
+                    int index_q=index_p+k;
         	float G_spatial=normal_pdf(k,mu,sigma);
         	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
-        	float G_std_u;
+        	float G_std_u=1;
         	//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
-        	float G_std_v;
+        	float G_std_v=1;
         	if(varout[2*index_q]>thres){
-        	    G_std_u=normal_pdf(10,mu,sigma);
+        	    G_std_u=0.001;//normal_pdf(10,mu,sigma);
         	}
         	else{
-                    G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+                G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
         	}
         	if(varout[2*index_q+1]>thres){
         	    G_std_v=normal_pdf(10,mu,sigma);
         	}
         	else{
-                    G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+                    G_std_v=0.001;//normal_pdf(varout[2*index_q+1],mu,sigma);
         	}
         	weight_u += G_spatial*G_std_u;
         	weight_v += G_spatial*G_std_v;
         	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
         	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
             }
-	    if(weight_u!=0)
+            if(weight_u!=0)
             flowout[2*index_p] =smoothed_u/weight_u;
-	    if(weight_v!=0)
+            if(weight_v!=0)
             flowout[2*index_p+1] =smoothed_v/weight_v;
 
-        }
-        //bottom to top
-        //for(int i = cpt->height-half_k-1;i>=half_k;i--){
+            }
+        //right to left
+        //for(int i = cpt->width-half_k-1;i>=half_k;i--){
         //    float smoothed_u=0;
         //    float weight_u=0;
         //    float smoothed_v=0;
         //    float weight_v=0;
-        //    int index_p=i*cpt->width+j;
+            //    int index_p=j*cpt->width+i;
         //    for(int k=-half_k;k<=half_k;k++){
-        //        int index_q=index_p+k;
+            //        int index_q=index_p+k;
         //	float G_spatial=normal_pdf(k,mu,sigma);
         //	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
         //	float G_std_u;
@@ -655,16 +632,117 @@ if(false){
         //    }
         //    flowout[2*index_p] =smoothed_u/weight_u;
         //    flowout[2*index_p+1] =smoothed_v/weight_v;
-
-
         //}
-     }
+         }
 
-}
+        // col-wise bilateral
+        for (int j =k_size;j<cpt->width-k_size;j++){
+            //top to bottom
+            for(int i =0+half_k;i<cpt->height-half_k;i++){
+                float smoothed_u=0;
+                float weight_u=0;
+                float smoothed_v=0;
+                float weight_v=0;
+                int index_p=i*cpt->width+j;
+                for(int k=-half_k;k<=half_k;k++){
+                    int index_q=index_p+k;
+            	    float G_spatial=normal_pdf(k,mu,sigma);
+            	    //float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
+            	    float G_std_u;
+            	    //float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
+            	    float G_std_v;
+            	    if(varout[2*index_q]>thres){
+            	        G_std_u=normal_pdf(10,mu,sigma);
+            	    }
+            	    else{
+                        G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+            	    }
+            	    if(varout[2*index_q+1]>thres){
+            	        G_std_v=normal_pdf(10,mu,sigma);
+            	    }
+            	    else{
+                        G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+            	    }
+            	    weight_u += G_spatial*G_std_u;
+            	    weight_v += G_spatial*G_std_v;
+            	    smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
+            	    smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
+                }
+                if(weight_u!=0)
+                    flowout[2*index_p] =smoothed_u/weight_u;
+                if(weight_v!=0)
+                    flowout[2*index_p+1] =smoothed_v/weight_v;
+            }
+            //bottom to top
+            //for(int i = cpt->height-half_k-1;i>=half_k;i--){
+            //    float smoothed_u=0;
+            //    float weight_u=0;
+            //    float smoothed_v=0;
+            //    float weight_v=0;
+            //    int index_p=i*cpt->width+j;
+            //    for(int k=-half_k;k<=half_k;k++){
+            //        int index_q=index_p+k;
+            //	float G_spatial=normal_pdf(k,mu,sigma);
+            //	//float G_value_u=normal_pdf(flowout[2*index],mu,sigma);
+            //	float G_std_u;
+            //	//float G_value_v=normal_pdf(flowout[2*index],mu,sigma);
+            //	float G_std_v;
+            //	if(varout[2*index_q]>thres){
+            //	    G_std_u=normal_pdf(10,mu,sigma);
+            //	}
+            //	else{
+            //            G_std_u=normal_pdf(varout[2*index_q],mu,sigma);
+            //	}
+            //	if(varout[2*index_q+1]>thres){
+            //	    G_std_v=normal_pdf(10,mu,sigma);
+            //	}
+            //	else{
+            //            G_std_v=normal_pdf(varout[2*index_q+1],mu,sigma);
+            //	}
+            //	weight_u += G_spatial*G_std_u;
+            //	weight_v += G_spatial*G_std_v;
+            //	smoothed_u += flowout[2*index_q]  *G_spatial*G_std_u;
+            //	smoothed_v += flowout[2*index_q+1]*G_spatial*G_std_v;
+            //    }
+            //    flowout[2*index_p] =smoothed_u/weight_u;
+            //    flowout[2*index_p+1] =smoothed_v/weight_v;
+            //}
+        }
     //cout<<"no. of conflicting px: "<<conflict_cnt<<", "<<conflict_cnt/(cpt->width*cpt->height)<<" of total px."<<endl;
+  }	
+
+//patch wise bi-linear
+  if(true&& cpt->height!=436){
+     Mat prev_u = Mat(noph,nopw,CV_32F);
+     Mat prev_v = Mat(noph,nopw,CV_32F);
+     Mat new_u = Mat(cpt->height,cpt->width,CV_32F);
+     Mat new_v = Mat(cpt->height,cpt->width,CV_32F);
+     for (int yi = 0; yi < noph; ++yi)
+     {
+       for (int xi = 0; xi <nopw; ++xi)
+       { 
+         int i = xi*noph + yi;
+         int index_p=pt_ref[i][0]+pt_ref[i][1]*cpt->width ;//= y * steps + offseth;
+         prev_u.at<float>(yi,xi) = flowout[2*index_p  ];
+         prev_v.at<float>(yi,xi) = flowout[2*index_p+1];
+       }
+     }
+     resize(prev_u,new_u,new_u.size(),0,0,INTER_LINEAR);
+     resize(prev_v,new_v,new_v.size(),0,0,INTER_LINEAR);
+     for (int yi = 0; yi < cpt->height; ++yi){
+       for (int xi = 0; xi < cpt->width; ++xi){ 
+         int i    = yi*cpt->width + xi;
+		 //float var_u=varout[2*i  ],var_v=varout[2*i+1];
+		 float var_u=2,var_v=2;
+		 if(var_u>=2){
+             flowout[2*i  ] =new_u.at<float>(yi,xi);///(1+var_u);
+		 }
+		 if(var_v>=2) {
+             flowout[2*i+1] =new_v.at<float>(yi,xi);///(1+var_v);
+		 }
+       }
+     }
   }
-    
-  delete[] we;
 }
 
 }

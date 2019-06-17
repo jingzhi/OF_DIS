@@ -37,7 +37,7 @@ else
 	out=${img1//png/flo}
 	echo ./run_OF_RGB $imgPath$img1 $imgPath$img2 $out $param_config
 	./run_OF_RGB $imgPath$img1 $imgPath$img2 $out $param_config
-	../Ideas/benchmark $gtPath$out $out -display -r=smalld 
+	../Ideas/benchmark $gtPath$out $out -display #-r=smalld 
 
 fi
 
